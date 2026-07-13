@@ -2,6 +2,11 @@ import * as vscode from "vscode";
 import { fetchUsage, getCached, UsageResult } from "./usage";
 import { StatusBar } from "./statusbar";
 import { UsageViewProvider } from "./view";
+import { fetchLatestRelease, isNewer } from "./update";
+
+const UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
+const LAST_CHECK_KEY = "cursorUsage.lastUpdateCheck";
+const SKIPPED_VERSION_KEY = "cursorUsage.skippedVersion";
 
 let statusBar: StatusBar | undefined;
 let viewProvider: UsageViewProvider | undefined;
@@ -25,7 +30,10 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("cursorUsage.show", async () => {
       await viewProvider?.reveal();
     }),
-    vscode.commands.registerCommand("cursorUsage.refresh", () => void refresh(true))
+    vscode.commands.registerCommand("cursorUsage.refresh", () => void refresh(true)),
+    vscode.commands.registerCommand("cursorUsage.checkForUpdates", () =>
+      void checkForUpdates(context, true)
+    )
   );
 
   context.subscriptions.push(
@@ -44,6 +52,69 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   applyEnabled(cfg().get<boolean>("enable", true));
+
+  // Background update check shortly after startup (throttled to once/day).
+  setTimeout(() => void checkForUpdates(context, false), 8000);
+}
+
+/**
+ * Check GitHub for a newer release. `manual` = true always reports the result
+ * (even when up to date) and ignores the daily throttle / skipped version.
+ */
+async function checkForUpdates(context: vscode.ExtensionContext, manual: boolean): Promise<void> {
+  const cfg = vscode.workspace.getConfiguration("cursorUsage");
+  if (!manual && !cfg.get<boolean>("checkForUpdates", true)) {
+    return;
+  }
+
+  if (!manual) {
+    const last = context.globalState.get<number>(LAST_CHECK_KEY, 0);
+    if (Date.now() - last < UPDATE_CHECK_INTERVAL_MS) {
+      return;
+    }
+  }
+  await context.globalState.update(LAST_CHECK_KEY, Date.now());
+
+  const current = (context.extension.packageJSON as { version?: string }).version ?? "0.0.0";
+  const latest = await fetchLatestRelease();
+
+  if (!latest) {
+    if (manual) {
+      void vscode.window.showInformationMessage("Cursor Usage: couldn't check for updates right now.");
+    }
+    return;
+  }
+
+  if (!isNewer(latest.version, current)) {
+    if (manual) {
+      void vscode.window.showInformationMessage(
+        `Cursor Usage is up to date (v${current}).`
+      );
+    }
+    return;
+  }
+
+  if (!manual && context.globalState.get<string>(SKIPPED_VERSION_KEY) === latest.version) {
+    return;
+  }
+
+  const download = "Download";
+  const notes = "Release Notes";
+  const skip = "Skip This Version";
+  const picked = await vscode.window.showInformationMessage(
+    `Cursor Usage v${latest.version} is available (you have v${current}).`,
+    download,
+    notes,
+    skip
+  );
+
+  if (picked === download && latest.vsixUrl) {
+    void vscode.env.openExternal(vscode.Uri.parse(latest.vsixUrl));
+  } else if (picked === download || picked === notes) {
+    void vscode.env.openExternal(vscode.Uri.parse(latest.htmlUrl));
+  } else if (picked === skip) {
+    await context.globalState.update(SKIPPED_VERSION_KEY, latest.version);
+  }
 }
 
 function applyEnabled(enabled: boolean): void {

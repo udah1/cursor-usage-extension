@@ -59,6 +59,10 @@
         "command": "cursorUsage.refresh",
         "title": "Cursor Usage: Refresh",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "cursorUsage.checkForUpdates",
+        "title": "Cursor Usage: Check for Updates"
       }
     ],
     "menus": {
@@ -98,6 +102,11 @@
           "type": "boolean",
           "default": true,
           "description": "Show the usage badge in the status bar."
+        },
+        "cursorUsage.checkForUpdates": {
+          "type": "boolean",
+          "default": true,
+          "description": "Check GitHub once a day for a newer version and notify when one is available."
         }
       }
     }

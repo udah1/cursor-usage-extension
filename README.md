@@ -52,6 +52,7 @@ token; on HTTP 401/403 the extension re-reads the keys once and retries once, th
 | `cursorUsage.refreshIntervalSec` | `300` | Refresh interval in seconds (min 60). |
 | `cursorUsage.detailLevel` | `"auto"` | `auto` \| `compact` \| `full`. |
 | `cursorUsage.showStatusBar` | `true` | Show the status-bar badge. |
+| `cursorUsage.checkForUpdates` | `true` | Check GitHub once a day for a newer version and notify. |
 
 Refreshes on activation, then polls on the interval (hard-throttled to at most 1 network fetch
 per 60s). Use **Cursor Usage: Refresh** for a manual refresh.
@@ -70,6 +71,14 @@ Install the `.vsix`: Command Palette → **Extensions: Install from VSIX…**
 
 - **Cursor Usage: Show** — reveal the detail panel.
 - **Cursor Usage: Refresh** — force a refresh (respects the 60s throttle).
+- **Cursor Usage: Check for Updates** — check GitHub for a newer release now.
+
+## Updates
+
+The extension checks the [GitHub Releases](https://github.com/udah1/cursor-usage-extension/releases)
+API once a day (in the background) and notifies you when a newer version is available, with
+**Download** / **Release Notes** / **Skip This Version** actions. Disable via
+`cursorUsage.checkForUpdates`, or run **Cursor Usage: Check for Updates** anytime.
 
 ## Caveats
 
