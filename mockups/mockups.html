@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Cursor Usage — Extension Mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ---- VS Code dark theme variable emulation (so mockups look native) ---- */
+  :root {
+    --vscode-font: "Fira Sans", -apple-system, "Segoe UI", system-ui, sans-serif;
+    --vscode-mono: "Fira Code", "SF Mono", Menlo, Consolas, monospace;
+
+    --bg-editor: #1e1e2e;
+    --bg-sidebar: #181825;
+    --bg-statusbar: #11111b;
+    --bg-titlebar: #181825;
+    --fg: #cdd6f4;
+    --fg-muted: #9399b2;
+    --fg-dim: #6c7086;
+    --border: #313244;
+    --input-bg: #11111b;
+
+    --accent: #89b4fa;          /* vscode blue-ish */
+    --ok: #22c55e;              /* run green */
+    --warn: #f59e0b;            /* amber >=80% */
+    --danger: #ef4444;          /* red >=100% */
+    --track: #313244;
+
+    --statusbar-fg: #cdd6f4;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #0b0b12;
+    color: var(--fg);
+    font-family: var(--vscode-font);
+    padding: 40px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1 { font-size: 22px; font-weight: 600; margin: 0 0 4px; letter-spacing: -0.2px; }
+  .sub { color: var(--fg-dim); font-size: 13px; margin-bottom: 32px; font-family: var(--vscode-mono); }
+
+  .grid { display: flex; flex-wrap: wrap; gap: 40px; align-items: flex-start; }
+
+  .spec {
+    font-size: 11px; color: var(--fg-dim); text-transform: uppercase;
+    letter-spacing: 1.2px; margin: 0 0 12px; font-weight: 600;
+  }
+  .caption { font-size: 12px; color: var(--fg-muted); margin-top: 10px; font-family: var(--vscode-mono); max-width: 320px; line-height: 1.5; }
+  .col { display: flex; flex-direction: column; }
+  .section { margin-bottom: 56px; }
+
+  /* ---------- Status bar mockup ---------- */
+  .statusbar {
+    width: 720px; height: 26px; background: var(--bg-statusbar);
+    display: flex; align-items: center; gap: 0;
+    border-radius: 4px; overflow: hidden;
+    box-shadow: 0 8px 30px rgba(0,0,0,.4);
+  }
+  .sb-left { display:flex; align-items:center; gap:0; }
+  .sb-spacer { flex: 1; }
+  .sb-item {
+    display: flex; align-items: center; gap: 5px; height: 26px;
+    padding: 0 9px; font-size: 12px; color: var(--statusbar-fg);
+    font-family: var(--vscode-mono); cursor: pointer; white-space: nowrap;
+  }
+  .sb-item:hover { background: rgba(255,255,255,.08); }
+  .sb-item svg { width: 13px; height: 13px; }
+  .sb-item.ghost { color: var(--fg-dim); }
+  .sb-item.warn  { color: var(--warn); }
+  .sb-item.warn svg { stroke: var(--warn); }
+  .sb-item.danger{ color: var(--danger); font-weight: 600; }
+  .sb-item.danger:hover { background: rgba(239,68,68,.12); }
+  .sb-item.danger svg { stroke: var(--danger); }
+  .sb-item.auth { color: var(--warn); }
+  .sb-item.auth svg { stroke: var(--warn); }
+  /* per-segment severity coloring inside the usage badge */
+  .sb-item .sep { color: var(--fg-dim); margin: 0 3px; }
+  .seg { font-weight: 500; }
+  .seg.warn   { color: var(--warn);   font-weight: 600; }
+  .seg.danger { color: var(--danger); font-weight: 600; }
+  .sb-item svg.warn   { stroke: var(--warn); }
+  .sb-item svg.danger { stroke: var(--danger); }
+
+  .sb-variants { display:flex; flex-direction:column; gap:18px; }
+
+  /* ---------- Sidebar / webview mockups ---------- */
+  .window {
+    width: 320px; background: var(--bg-sidebar);
+    border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0,0,0,.5);
+  }
+  .panel-head {
+    height: 35px; display: flex; align-items: center; gap: 7px;
+    padding: 0 12px; text-transform: uppercase; font-size: 11px;
+    letter-spacing: .8px; color: var(--fg-muted); font-weight: 600;
+    border-bottom: 1px solid var(--border); background: var(--bg-sidebar);
+  }
+  .panel-head .actions { margin-left: auto; display: flex; gap: 8px; }
+  .panel-head .actions svg { width: 15px; height: 15px; stroke: var(--fg-muted); cursor: pointer; }
+  .panel-head .actions svg:hover { stroke: var(--fg); }
+
+  .body { padding: 14px 14px 16px; }
+
+  /* card */
+  .card { background: var(--input-bg); border: 1px solid var(--border); border-radius: 8px; padding: 13px 13px; margin-bottom: 12px; }
+  .card:last-child { margin-bottom: 0; }
+
+  .row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .label { font-size: 11px; color: var(--fg-muted); text-transform: uppercase; letter-spacing: .6px; font-weight: 600; }
+
+  .big { font-family: var(--vscode-mono); font-size: 22px; font-weight: 600; letter-spacing: -.5px; color: var(--fg); }
+  .big .unit { font-size: 13px; color: var(--fg-dim); font-weight: 400; }
+  .big.warn { color: var(--warn); }
+  .big.danger { color: var(--danger); }
+
+  .pct-chip { font-family: var(--vscode-mono); font-size: 12px; padding: 2px 7px; border-radius: 20px; font-weight: 600; }
+  .pct-chip.warn { color: var(--warn); background: rgba(245,158,11,.14); }
+  .pct-chip.ok { color: var(--ok); background: rgba(34,197,94,.14); }
+  .pct-chip.danger { color: var(--danger); background: rgba(239,68,68,.14); }
+
+  /* ---------- light theme override wrapper ---------- */
+  .theme-light {
+    --bg-sidebar:#f8f8f8; --bg-statusbar:#f3f3f3; --fg:#1f2328;
+    --fg-muted:#57606a; --fg-dim:#8c959f; --border:#d0d7de; --input-bg:#ffffff;
+    --track:#e1e4e8; --accent:#0969da; --ok:#1a7f37; --warn:#9a6700;
+    --danger:#cf222e; --statusbar-fg:#1f2328;
+    background:#eaeef2; padding:28px; border-radius:12px;
+  }
+  .theme-light .statusbar { box-shadow: 0 4px 16px rgba(140,150,160,.35); }
+  .theme-light .sb-item:hover { background: rgba(0,0,0,.06); }
+  .theme-light .sb-item.danger:hover { background: rgba(207,34,46,.10); }
+  .theme-light .window { box-shadow: 0 6px 24px rgba(140,150,160,.4); }
+  .theme-light .spec, .theme-light .caption { color:#57606a; }
+  .theme-light .pct-chip.warn { color:#9a6700; background: rgba(154,103,0,.12); }
+  .theme-light .pct-chip.ok { color:#1a7f37; background: rgba(26,127,55,.12); }
+  .theme-light .fill.ok { background: linear-gradient(90deg,#1a7f37,#2da44e); }
+  .theme-light .fill.warn { background: linear-gradient(90deg,#bf8700,#d4a017); }
+  .theme-light .btn.primary { color:#fff; }
+
+  /* progress bar */
+  .track { height: 8px; border-radius: 6px; background: var(--track); overflow: hidden; margin: 11px 0 9px; position: relative; }
+  .fill { height: 100%; border-radius: 6px; }
+  .fill.ok { background: linear-gradient(90deg,#16a34a,#22c55e); }
+  .fill.warn { background: linear-gradient(90deg,#d97706,#f59e0b); }
+  .fill.danger { background: linear-gradient(90deg,#dc2626,#ef4444); }
+
+  .meta { display:flex; justify-content: space-between; font-family: var(--vscode-mono); font-size: 11px; color: var(--fg-dim); }
+  .meta b { color: var(--fg-muted); font-weight: 600; }
+
+  .kv { display:flex; align-items:center; justify-content: space-between; padding: 5px 0; font-size: 12px; }
+  .kv .k { color: var(--fg-muted); display:flex; align-items:center; gap:7px; }
+  .kv .k svg { width:13px; height:13px; stroke: var(--fg-dim); }
+  .kv .v { font-family: var(--vscode-mono); color: var(--fg); }
+
+  .reset-line { display:flex; align-items:center; gap:7px; font-family: var(--vscode-mono); font-size:11px; color: var(--fg-dim); margin-top: 2px; }
+  .reset-line svg { width: 12px; height:12px; stroke: var(--fg-dim); }
+
+  .burn { display:flex; align-items:center; gap:7px; font-family: var(--vscode-mono); font-size:11px; margin-top: 10px; padding-top: 11px; border-top: 1px dashed var(--border); }
+  .burn.warn { color: var(--warn); }
+  .burn svg { width:13px; height:13px; }
+
+  /* model table */
+  .tbl { width: 100%; border-collapse: collapse; font-family: var(--vscode-mono); font-size: 11px; }
+  .tbl th { text-align: right; color: var(--fg-dim); font-weight: 600; padding: 6px 4px; border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: .4px; font-size: 10px; }
+  .tbl th:first-child, .tbl td:first-child { text-align: left; }
+  .tbl td { text-align: right; padding: 6px 4px; border-bottom: 1px solid rgba(49,50,68,.5); color: var(--fg-muted); }
+  .tbl td:first-child { color: var(--fg); }
+  .tbl tr:last-child td { border-bottom: none; }
+  .tbl .cost { color: var(--ok); }
+
+  /* footer refresh */
+  .foot { display:flex; align-items:center; justify-content: space-between; margin-top: 12px; font-family: var(--vscode-mono); font-size: 10px; color: var(--fg-dim); }
+  .btn { display:inline-flex; align-items:center; gap:6px; font-size:11px; font-family:var(--vscode-font); color: var(--fg); background: transparent; border: 1px solid var(--border); border-radius: 6px; padding: 4px 9px; cursor:pointer; }
+  .btn:hover { background: rgba(255,255,255,.05); border-color: var(--fg-dim); }
+  .btn svg { width: 12px; height:12px; stroke: var(--fg-muted); }
+  .btn.primary { background: var(--accent); color:#11111b; border-color: var(--accent); font-weight:600; }
+  .btn.primary svg { stroke:#11111b; }
+
+  /* auth state */
+  .auth-box { text-align:center; padding: 8px 6px 4px; }
+  .auth-box .ic { width: 40px; height:40px; margin: 6px auto 12px; display:flex; align-items:center; justify-content:center; border-radius: 50%; background: rgba(245,158,11,.12); }
+  .auth-box .ic svg { width: 20px; height:20px; stroke: var(--warn); }
+  .auth-box h3 { font-size: 14px; margin: 0 0 6px; color: var(--fg); }
+  .auth-box p { font-size: 12px; color: var(--fg-muted); margin: 0 0 14px; line-height: 1.5; }
+
+  /* compact summary */
+  .compact-row { display:flex; align-items:center; gap: 10px; }
+  .mini-track { flex:1; height:6px; border-radius:6px; background:var(--track); overflow:hidden; }
+  .mini-fill { height:100%; border-radius:6px; }
+</style>
+</head>
+<body>
+  <h1>Cursor Usage — Extension Mockups</h1>
+  <div class="sub">// live data snapshot: 415/500 requests · $0/$75 · enterprise · resets 2026-08-01</div>
+
+  <!-- ============ STATUS BAR ============ -->
+  <div class="section">
+    <div class="spec">1 · Status-bar badge (always on) — click opens detail</div>
+    <div class="sb-variants">
+
+      <!-- normal -->
+      <div class="statusbar">
+        <div class="sb-left">
+          <span class="sb-item ghost">main*</span>
+          <span class="sb-item ghost">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>0
+          </span>
+        </div>
+        <div class="sb-spacer"></div>
+        <span class="sb-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          <span class="seg">128/500</span><span class="sep">·</span><span class="seg">$0/$75</span>
+        </span>
+        <span class="sb-item ghost">Spaces: 2</span>
+        <span class="sb-item ghost">UTF-8</span>
+      </div>
+
+      <!-- warning (real data) -->
+      <div class="statusbar">
+        <div class="sb-left"><span class="sb-item ghost">main*</span></div>
+        <div class="sb-spacer"></div>
+        <span class="sb-item">
+          <svg class="warn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          <span class="seg warn">415/500</span><span class="sep">·</span><span class="seg warn">$63/$75</span>
+        </span>
+        <span class="sb-item ghost">Spaces: 2</span>
+        <span class="sb-item ghost">UTF-8</span>
+      </div>
+
+      <!-- over-limit requests, spend still normal (independent segments) -->
+      <div class="statusbar">
+        <div class="sb-left"><span class="sb-item ghost">main*</span></div>
+        <div class="sb-spacer"></div>
+        <span class="sb-item">
+          <svg class="danger" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          <span class="seg danger">500/500</span><span class="sep">·</span><span class="seg">$12/$75</span>
+        </span>
+        <span class="sb-item ghost">Spaces: 2</span>
+        <span class="sb-item ghost">UTF-8</span>
+      </div>
+
+      <!-- both maxed -->
+      <div class="statusbar">
+        <div class="sb-left"><span class="sb-item ghost">main*</span></div>
+        <div class="sb-spacer"></div>
+        <span class="sb-item">
+          <svg class="danger" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          <span class="seg danger">500/500</span><span class="sep">·</span><span class="seg danger">$75/$75</span>
+        </span>
+        <span class="sb-item ghost">Spaces: 2</span>
+        <span class="sb-item ghost">UTF-8</span>
+      </div>
+
+      <!-- needs auth -->
+      <div class="statusbar">
+        <div class="sb-left"><span class="sb-item ghost">main*</span></div>
+        <div class="sb-spacer"></div>
+        <span class="sb-item auth">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+          Cursor Usage: reconnect
+        </span>
+        <span class="sb-item ghost">UTF-8</span>
+      </div>
+
+    </div>
+    <div class="caption">Each segment colored independently: requests (left) and spend ($, right) each go white → amber (≥80%) → red (≥100%). Last two rows show requests maxed with spend normal, then both maxed.</div>
+  </div>
+
+  <!-- ============ DETAIL VIEWS ============ -->
+  <div class="spec">2 · Detail view (sidebar WebviewView) — adaptive layout</div>
+  <div class="grid">
+
+    <!-- ---------- FULL (team account) ---------- -->
+    <div class="col">
+      <div class="window">
+        <div class="panel-head">
+          Cursor Usage
+          <span class="actions">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" title="Refresh"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6"/></svg>
+          </span>
+        </div>
+        <div class="body">
+
+          <!-- included requests -->
+          <div class="card">
+            <div class="row">
+              <span class="label">Included requests</span>
+              <span class="pct-chip warn">83.0%</span>
+            </div>
+            <div class="row" style="margin-top:8px;align-items:flex-end">
+              <span class="big warn">415<span class="unit"> / 500</span></span>
+              <span class="meta"><b>85</b>&nbsp;left</span>
+            </div>
+            <div class="track"><div class="fill warn" style="width:83%"></div></div>
+            <div class="reset-line">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+              Resets Aug 1, 2026 · 18.5d left
+            </div>
+            <div class="burn warn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              33.2/day → ~1029 by reset (over limit)
+            </div>
+          </div>
+
+          <!-- on-demand spend -->
+          <div class="card">
+            <div class="row">
+              <span class="label">On-demand spend</span>
+              <span class="pct-chip ok">0%</span>
+            </div>
+            <div class="row" style="margin-top:8px;align-items:flex-end">
+              <span class="big">$0<span class="unit"> / $75</span></span>
+              <span class="meta"><b>$75</b>&nbsp;left</span>
+            </div>
+            <div class="track"><div class="fill ok" style="width:2%"></div></div>
+            <div class="kv"><span class="k">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7H4a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1zM16 3H8"/></svg>
+              Plan</span><span class="v">enterprise</span></div>
+          </div>
+
+          <!-- per-model table (team) -->
+          <div class="card">
+            <div class="label" style="margin-bottom:8px">Usage by model</div>
+            <table class="tbl">
+              <thead><tr><th>Model</th><th>$</th><th>Req</th><th>Tokens</th></tr></thead>
+              <tbody>
+                <tr><td>claude-opus</td><td class="cost">$3.42</td><td>86</td><td>1.2M</td></tr>
+                <tr><td>gpt-5</td><td class="cost">$1.10</td><td>41</td><td>612K</td></tr>
+                <tr><td>auto</td><td class="cost">$0.28</td><td>288</td><td>3.4M</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="foot">
+            <span>updated 12s ago</span>
+            <button class="btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6"/></svg>Refresh</button>
+          </div>
+
+        </div>
+      </div>
+      <div class="caption">FULL — tall panel / detailLevel:"full". Model table only on team accounts.</div>
+    </div>
+
+    <!-- ---------- COMPACT ---------- -->
+    <div class="col">
+      <div class="window" style="height:auto">
+        <div class="panel-head">
+          Cursor Usage
+          <span class="actions">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6"/></svg>
+          </span>
+        </div>
+        <div class="body">
+          <div class="card">
+            <div class="row" style="align-items:flex-end">
+              <span class="big warn">415<span class="unit">/500</span></span>
+              <span class="pct-chip warn">83%</span>
+            </div>
+            <div class="track"><div class="fill warn" style="width:83%"></div></div>
+            <div class="meta"><span><b>85</b> left</span><span>18.5d left</span></div>
+          </div>
+          <div class="card">
+            <div class="compact-row">
+              <span class="label" style="text-transform:none;font-family:var(--vscode-mono);color:var(--fg)">$0 / $75</span>
+              <div class="mini-track"><div class="mini-fill fill ok" style="width:2%"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="caption">COMPACT — short panel / detailLevel:"compact". Just the essentials + progress.</div>
+    </div>
+
+    <!-- ---------- NEEDS AUTH ---------- -->
+    <div class="col">
+      <div class="window" style="height:auto">
+        <div class="panel-head">Cursor Usage</div>
+        <div class="body">
+          <div class="card auth-box">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></div>
+            <h3>Not connected</h3>
+            <p>Couldn't read a valid Cursor session token. Make sure you're signed in to Cursor on this machine.</p>
+            <button class="btn primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6"/></svg>Reconnect</button>
+          </div>
+        </div>
+      </div>
+      <div class="caption">needsAuth / error — read-only token missing or 401 after retry.</div>
+    </div>
+
+  </div>
+
+  <!-- ============ LIGHT THEME ============ -->
+  <div class="section" style="margin-top:24px">
+    <div class="spec" style="color:#9399b2">3 · Light theme (auto-adapts to VS Code Light+ / high-contrast)</div>
+    <div class="theme-light">
+
+      <!-- status bar: warning + over-limit(red text) -->
+      <div class="sb-variants" style="margin-bottom:28px">
+        <div class="statusbar">
+          <div class="sb-left"><span class="sb-item ghost">main*</span></div>
+          <div class="sb-spacer"></div>
+          <span class="sb-item">
+            <svg class="warn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            <span class="seg warn">415/500</span><span class="sep">·</span><span class="seg warn">$63/$75</span>
+          </span>
+          <span class="sb-item ghost">Spaces: 2</span>
+          <span class="sb-item ghost">UTF-8</span>
+        </div>
+        <div class="statusbar">
+          <div class="sb-left"><span class="sb-item ghost">main*</span></div>
+          <div class="sb-spacer"></div>
+          <span class="sb-item">
+            <svg class="danger" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            <span class="seg danger">500/500</span><span class="sep">·</span><span class="seg">$12/$75</span>
+          </span>
+          <span class="sb-item ghost">Spaces: 2</span>
+          <span class="sb-item ghost">UTF-8</span>
+        </div>
+      </div>
+
+      <div class="grid">
+        <!-- full -->
+        <div class="col">
+          <div class="window">
+            <div class="panel-head">Cursor Usage
+              <span class="actions"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6"/></svg></span>
+            </div>
+            <div class="body">
+              <div class="card">
+                <div class="row"><span class="label">Included requests</span><span class="pct-chip warn">83.0%</span></div>
+                <div class="row" style="margin-top:8px;align-items:flex-end"><span class="big warn">415<span class="unit"> / 500</span></span><span class="meta"><b>85</b>&nbsp;left</span></div>
+                <div class="track"><div class="fill warn" style="width:83%"></div></div>
+                <div class="reset-line"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Resets Aug 1, 2026 · 18.5d left</div>
+                <div class="burn warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>33.2/day → ~1029 by reset (over limit)</div>
+              </div>
+              <div class="card">
+                <div class="row"><span class="label">On-demand spend</span><span class="pct-chip ok">0%</span></div>
+                <div class="row" style="margin-top:8px;align-items:flex-end"><span class="big">$0<span class="unit"> / $75</span></span><span class="meta"><b>$75</b>&nbsp;left</span></div>
+                <div class="track"><div class="fill ok" style="width:2%"></div></div>
+                <div class="kv"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7H4a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1zM16 3H8"/></svg>Plan</span><span class="v">enterprise</span></div>
+              </div>
+              <div class="card">
+                <div class="label" style="margin-bottom:8px">Usage by model</div>
+                <table class="tbl">
+                  <thead><tr><th>Model</th><th>$</th><th>Req</th><th>Tokens</th></tr></thead>
+                  <tbody>
+                    <tr><td>claude-opus</td><td class="cost">$3.42</td><td>86</td><td>1.2M</td></tr>
+                    <tr><td>gpt-5</td><td class="cost">$1.10</td><td>41</td><td>612K</td></tr>
+                    <tr><td>auto</td><td class="cost">$0.28</td><td>288</td><td>3.4M</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="foot"><span>updated 12s ago</span><button class="btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6"/></svg>Refresh</button></div>
+            </div>
+          </div>
+          <div class="caption">FULL — light</div>
+        </div>
+
+        <!-- compact + auth -->
+        <div class="col" style="gap:24px">
+          <div>
+            <div class="window" style="height:auto">
+              <div class="panel-head">Cursor Usage<span class="actions"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6"/></svg></span></div>
+              <div class="body">
+                <div class="card">
+                  <div class="row" style="align-items:flex-end"><span class="big warn">415<span class="unit">/500</span></span><span class="pct-chip warn">83%</span></div>
+                  <div class="track"><div class="fill warn" style="width:83%"></div></div>
+                  <div class="meta"><span><b>85</b> left</span><span>18.5d left</span></div>
+                </div>
+                <div class="card">
+                  <div class="compact-row"><span class="label" style="text-transform:none;font-family:var(--vscode-mono);color:var(--fg)">$0 / $75</span><div class="mini-track"><div class="mini-fill fill ok" style="width:2%"></div></div></div>
+                </div>
+              </div>
+            </div>
+            <div class="caption">COMPACT — light</div>
+          </div>
+          <div>
+            <div class="window" style="height:auto">
+              <div class="panel-head">Cursor Usage</div>
+              <div class="body">
+                <div class="card auth-box">
+                  <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></div>
+                  <h3>Not connected</h3>
+                  <p>Couldn't read a valid Cursor session token. Make sure you're signed in to Cursor on this machine.</p>
+                  <button class="btn primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6"/></svg>Reconnect</button>
+                </div>
+              </div>
+            </div>
+            <div class="caption">needsAuth — light</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div style="height:20px"></div>
+</body>
+</html>

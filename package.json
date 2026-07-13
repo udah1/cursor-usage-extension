@@ -1,0 +1,119 @@
+{
+  "name": "cursor-usage",
+  "displayName": "Cursor Usage",
+  "description": "Live Cursor usage in your status bar and sidebar — reuses Cursor's own local session, no login.",
+  "version": "0.1.0",
+  "publisher": "local",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/udah1/cursor-usage-extension.git"
+  },
+  "bugs": {
+    "url": "https://github.com/udah1/cursor-usage-extension/issues"
+  },
+  "homepage": "https://github.com/udah1/cursor-usage-extension#readme",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "cursor",
+    "usage",
+    "quota",
+    "requests",
+    "billing"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "cursorUsage",
+          "title": "Cursor Usage",
+          "icon": "media/gauge.svg"
+        }
+      ]
+    },
+    "views": {
+      "cursorUsage": [
+        {
+          "id": "cursorUsage.detail",
+          "name": "Usage",
+          "type": "webview"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "cursorUsage.show",
+        "title": "Cursor Usage: Show",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "cursorUsage.refresh",
+        "title": "Cursor Usage: Refresh",
+        "icon": "$(refresh)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "cursorUsage.refresh",
+          "when": "view == cursorUsage.detail",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Cursor Usage",
+      "properties": {
+        "cursorUsage.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the Cursor Usage extension (status bar and polling)."
+        },
+        "cursorUsage.refreshIntervalSec": {
+          "type": "number",
+          "default": 300,
+          "minimum": 60,
+          "description": "How often to refresh usage, in seconds (minimum 60)."
+        },
+        "cursorUsage.detailLevel": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "compact",
+            "full"
+          ],
+          "default": "auto",
+          "description": "Detail view density. 'auto' adapts to the panel height."
+        },
+        "cursorUsage.showStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the usage badge in the status bar."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "node esbuild.js --production",
+    "watch": "node esbuild.js --watch",
+    "typecheck": "tsc --noEmit",
+    "package": "npm run build && vsce package --no-dependencies -o cursor-usage.vsix"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^2.24.0",
+    "esbuild": "^0.20.0",
+    "typescript": "^5.3.0"
+  }
+}
