@@ -6,9 +6,9 @@ Cursor already stores locally on your machine.
 
 ## Features
 
-- **Status-bar badge** (two adjacent items so each is colored on its own):
-  `⏲ 415/500` · `$0/$75` — included requests used/limit and on-demand spend.
-  Each segment goes white → amber (≥80%) → red (≥100%). Click to open details.
+- **Status-bar badge** — a single item `⏲ 415/500 · $0/$75` (included requests
+  used/limit and on-demand spend). The whole badge takes the color of whichever
+  part is most severe: white → amber (≥80%) → red (≥100%). Click to open details.
 - **Sidebar detail panel** (adaptive):
   - Included requests: used / limit (pct), remaining, progress bar (capped at 100%),
     and `Resets <date> (<daysLeft>d left)`.

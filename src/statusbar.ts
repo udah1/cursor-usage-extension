@@ -2,67 +2,55 @@ import * as vscode from "vscode";
 import { UsageResult } from "./usage";
 
 /**
- * Renders the usage badge as TWO adjacent status-bar items so requests and
- * spend can be colored independently (VS Code can't multi-color one item).
+ * Renders the usage badge as a SINGLE status-bar item showing both requests and
+ * spend. VS Code can't multi-color one item, so the whole badge takes the color
+ * of whichever segment is most severe (requests or spend).
  */
 export class StatusBar implements vscode.Disposable {
-  private readonly requests: vscode.StatusBarItem;
-  private readonly spend: vscode.StatusBarItem;
+  private readonly item: vscode.StatusBarItem;
 
   constructor() {
-    // Higher priority sits further left, so requests renders before spend.
-    this.requests = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-    this.spend = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 99);
-    this.requests.command = "cursorUsage.show";
-    this.spend.command = "cursorUsage.show";
+    this.item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+    this.item.command = "cursorUsage.show";
   }
 
   update(result: UsageResult, show: boolean): void {
     if (!show) {
-      this.requests.hide();
-      this.spend.hide();
+      this.item.hide();
       return;
     }
 
     if (result.state === "needsAuth") {
-      this.requests.text = "$(warning) Cursor Usage: reconnect";
-      this.requests.tooltip = "Couldn't read a valid Cursor session token. Click to open.";
-      this.requests.color = warnColor();
-      this.spend.hide();
-      this.requests.show();
+      this.item.text = "$(warning) Cursor Usage: reconnect";
+      this.item.tooltip = "Couldn't read a valid Cursor session token. Click to open.";
+      this.item.color = warnColor();
+      this.item.show();
       return;
     }
 
     if (result.state === "error") {
-      this.requests.text = "$(watch) Cursor Usage: —";
-      this.requests.tooltip = `Couldn't refresh usage: ${result.error}\nClick to open.`;
-      this.requests.color = undefined;
-      this.spend.hide();
-      this.requests.show();
+      this.item.text = "$(watch) Cursor Usage: —";
+      this.item.tooltip = `Couldn't refresh usage: ${result.error}\nClick to open.`;
+      this.item.color = undefined;
+      this.item.show();
       return;
     }
 
     const reqPct = result.limit > 0 ? (result.used / result.limit) * 100 : 0;
     const spendPct =
       result.onDemandLimit > 0 ? (result.onDemandUsed / result.onDemandLimit) * 100 : 0;
-
-    this.requests.text = `$(watch) ${result.used}/${result.limit}`;
-    this.requests.color = severityColor(reqPct);
-    this.requests.tooltip = buildTooltip(result);
+    const worst = Math.max(reqPct, spendPct);
 
     const usedStr = formatMoney(result.onDemandUsed);
     const limitStr = formatMoney(result.onDemandLimit);
-    this.spend.text = `${usedStr}/${limitStr}`;
-    this.spend.color = severityColor(spendPct);
-    this.spend.tooltip = this.requests.tooltip;
-
-    this.requests.show();
-    this.spend.show();
+    this.item.text = `$(watch) ${result.used}/${result.limit} · ${usedStr}/${limitStr}`;
+    this.item.color = severityColor(worst);
+    this.item.tooltip = buildTooltip(result);
+    this.item.show();
   }
 
   dispose(): void {
-    this.requests.dispose();
-    this.spend.dispose();
+    this.item.dispose();
   }
 }
 
