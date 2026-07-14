@@ -1,8 +1,20 @@
 # Cursor Usage
 
+[![Latest release](https://img.shields.io/github/v/release/udah1/cursor-usage-extension?label=release&color=22c55e)](https://github.com/udah1/cursor-usage-extension/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/udah1/cursor-usage-extension/total?color=blue)](https://github.com/udah1/cursor-usage-extension/releases)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 A tiny, read-only VS Code / Cursor extension that shows your **live Cursor usage** in the
 status bar and a sidebar panel — with **no separate login**. It reuses the session token
 Cursor already stores locally on your machine.
+
+## Preview
+
+| Dark theme | Light theme |
+| :--------: | :---------: |
+| <img src="media/screenshots/panel-dark.png" alt="Cursor Usage panel — dark theme" width="360"> | <img src="media/screenshots/panel-light.png" alt="Cursor Usage panel — light theme" width="360"> |
+
+The whole UI adapts to your VS Code / Cursor theme (dark, light, or high-contrast).
 
 ## Features
 

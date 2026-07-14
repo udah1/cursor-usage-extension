@@ -2,6 +2,8 @@
 .vscode-test/**
 src/**
 mockups/**
+media/screenshots/**
+media/preview.html
 node_modules/**
 .gitignore
 .git/**

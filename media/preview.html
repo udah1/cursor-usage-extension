@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --font: "Fira Sans", -apple-system, "Segoe UI", system-ui, sans-serif;
+    --mono: "Fira Code", "SF Mono", Menlo, Consolas, monospace;
+    --ok: #22c55e; --warn: #f59e0b; --danger: #ef4444;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #0b0b12; font-family: var(--font);
+    min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 26px; }
+  .stack { display: flex; flex-direction: column; gap: 26px; align-items: center; }
+  .pair { display: flex; flex-direction: column; gap: 22px; align-items: center; }
+
+  /* editor window */
+  .app {
+    width: 360px; background: #1e1e2e; border: 1px solid #313244; border-radius: 12px;
+    overflow: hidden; box-shadow: 0 24px 70px rgba(0,0,0,.55);
+    display: flex; flex-direction: column;
+  }
+  .app.light { background: #ffffff; border-color: #d0d7de; }
+  .titlebar { height: 36px; display: flex; align-items: center; gap: 8px; padding: 0 14px; background: #181825; }
+  .app.light .titlebar { background: #f3f3f3; }
+  .dot { width: 11px; height: 11px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
+  .title { margin-left: 10px; font-size: 12px; color: #6c7086; font-family: var(--mono); }
+  .app.light .title { color: #8c959f; }
+
+  .main { display: flex; height: 360px; }
+  .activity { width: 46px; background: #181825; display: flex; flex-direction: column; align-items: center; padding-top: 12px; gap: 16px; }
+  .app.light .activity { background: #f3f3f3; }
+  .activity svg { width: 22px; height: 22px; stroke: #6c7086; fill: none; stroke-width: 1.7; }
+  .activity .active { stroke: #cdd6f4; }
+  .app.light .activity .active { stroke: #1f2328; }
+
+  .sidebar { width: 100%; background: #181825; }
+  .app.light .sidebar { background: #f8f8f8; }
+  .panel-head { height: 34px; display: flex; align-items: center; padding: 0 12px; font-size: 11px;
+    letter-spacing: .8px; color: #9399b2; font-weight: 700; border-bottom: 1px solid #313244; }
+  .app.light .panel-head { color: #57606a; border-bottom-color: #d0d7de; }
+  .panel-head .rf { margin-left: auto; width: 14px; height: 14px; stroke: #9399b2; fill: none; stroke-width: 2; }
+  .pbody { padding: 12px; }
+
+  /* editor faux code */
+  .editor { flex: 1; min-width: 0; overflow: hidden; padding: 16px 18px; background: #1e1e2e; font-family: var(--mono); font-size: 12px; line-height: 1.9; white-space: nowrap; }
+  .app.light .editor { background: #ffffff; }
+  .ln { color: #6c7086; }
+  .app.light .ln { color: #b0b8c0; }
+  .kw { color: #cba6f7; } .fn { color: #89b4fa; } .st { color: #a6e3a1; } .cm { color: #6c7086; }
+  .app.light .kw { color: #8250df; } .app.light .fn { color: #0969da; } .app.light .st { color: #0a7d33; } .app.light .cm { color: #8c959f; }
+
+  /* status bar */
+  .statusbar { height: 26px; background: #11111b; display: flex; align-items: center; padding: 0 4px; }
+  .app.light .statusbar { background: #f3f3f3; border-top: 1px solid #d0d7de; }
+  .sb { display: flex; align-items: center; gap: 5px; height: 26px; padding: 0 9px; font-size: 12px;
+    font-family: var(--mono); color: #cdd6f4; }
+  .app.light .sb { color: #1f2328; }
+  .sb.dim { color: #6c7086; } .app.light .sb.dim { color: #8c959f; }
+  .sb svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; }
+  .sb.warn { color: var(--warn); font-weight: 600; }
+  .spacer { flex: 1; }
+
+  /* cards (from the real webview) */
+  .card { background: #11111b; border: 1px solid #313244; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+  .app.light .card { background: #ffffff; border-color: #d0d7de; }
+  .card:last-child { margin-bottom: 0; }
+  .row { display: flex; align-items: baseline; justify-content: space-between; }
+  .label { font-size: 10px; color: #9399b2; text-transform: uppercase; letter-spacing: .5px; font-weight: 700; }
+  .app.light .label { color: #57606a; }
+  .big { font-family: var(--mono); font-size: 21px; font-weight: 600; color: #cdd6f4; }
+  .app.light .big { color: #1f2328; }
+  .big.warn { color: var(--warn); }
+  .big .unit { font-size: 12px; color: #6c7086; font-weight: 400; }
+  .chip { font-family: var(--mono); font-size: 11px; padding: 1px 7px; border-radius: 10px; font-weight: 600; border: 1px solid; }
+  .chip.warn { color: var(--warn); border-color: var(--warn); }
+  .chip.ok { color: var(--ok); border-color: var(--ok); }
+  .meta { font-family: var(--mono); font-size: 11px; color: #9399b2; }
+  .app.light .meta { color: #57606a; }
+  .meta b { color: #cdd6f4; } .app.light .meta b { color: #1f2328; }
+  .track { height: 7px; border-radius: 5px; background: rgba(128,128,128,.25); overflow: hidden; margin: 9px 0 7px; }
+  .fill { height: 100%; border-radius: 5px; }
+  .fill.warn { background: var(--warn); } .fill.ok { background: var(--ok); }
+  .reset { font-family: var(--mono); font-size: 10px; color: #6c7086; }
+  .app.light .reset { color: #8c959f; }
+  .burn { font-family: var(--mono); font-size: 10px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed #313244; color: var(--warn); }
+  .app.light .burn { border-top-color: #d0d7de; }
+  .kv { display: flex; justify-content: space-between; font-size: 11px; padding: 3px 0; }
+  .kv .k { color: #9399b2; } .app.light .kv .k { color: #57606a; }
+  .kv .v { font-family: var(--mono); color: #cdd6f4; } .app.light .kv .v { color: #1f2328; }
+  table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 10px; margin-top: 4px; }
+  th { text-align: right; color: #6c7086; font-weight: 600; padding: 4px 3px; border-bottom: 1px solid #313244; text-transform: uppercase; }
+  th:first-child, td:first-child { text-align: left; }
+  td { text-align: right; padding: 4px 3px; border-bottom: 1px solid rgba(49,50,68,.5); color: #9399b2; }
+  td:first-child { color: #cdd6f4; } .app.light td:first-child { color: #1f2328; }
+  td.cost { color: var(--ok); }
+  tr:last-child td { border-bottom: none; }
+  .app.light th { color: #8c959f; border-bottom-color: #d0d7de; }
+  .app.light td { color: #57606a; border-bottom-color: #eaeef2; }
+</style>
+</head>
+<body>
+<div class="stack" id="stack"></div>
+<script>
+  const gauge = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 12l4-2.5"/></svg>';
+  const files = '<svg viewBox="0 0 24 24"><path d="M4 4h7l2 2h7v12H4z"/></svg>';
+  const search = '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>';
+  const watch = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+  const rf = '<svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6"/></svg>';
+
+  const code = [
+    ['1','<span class="cm">// live Cursor usage, right in your editor</span>'],
+    ['2',''],
+    ['3','<span class="kw">export function</span> <span class="fn">activate</span>(ctx) {'],
+    ['4','&nbsp;&nbsp;<span class="kw">const</span> usage = <span class="kw">await</span> <span class="fn">fetchUsage</span>();'],
+    ['5','&nbsp;&nbsp;statusBar.<span class="fn">update</span>(usage);'],
+    ['6','&nbsp;&nbsp;<span class="cm">// no login — reuses your Cursor session</span>'],
+    ['7','}'],
+    ['8',''],
+    ['9','<span class="cm">// resets ' + '2026-08-01' + '</span>'],
+  ].map(([n,c]) => '<div><span class="ln">' + n + '</span>&nbsp;&nbsp;' + c + '</div>').join('');
+
+  function panel() {
+    return '<div class="panel-head">CURSOR USAGE <span class="rf">' + rf + '</span></div>' +
+    '<div class="pbody">' +
+      '<div class="card">' +
+        '<div class="row"><span class="label">Included requests</span><span class="chip warn">83.0%</span></div>' +
+        '<div class="row" style="margin-top:6px"><span class="big warn">415<span class="unit"> / 500</span></span><span class="meta"><b>85</b> left</span></div>' +
+        '<div class="track"><div class="fill warn" style="width:83%"></div></div>' +
+        '<div class="reset">Resets Aug 1, 2026 · 18.5d left</div>' +
+        '<div class="burn">33.2/day &#8594; ~1029 by reset (over limit)</div>' +
+      '</div>' +
+      '<div class="card">' +
+        '<div class="row"><span class="label">On-demand spend</span><span class="chip ok">0%</span></div>' +
+        '<div class="row" style="margin-top:6px"><span class="big">$0<span class="unit"> / $75</span></span><span class="meta"><b>$75</b> left</span></div>' +
+        '<div class="track"><div class="fill ok" style="width:2%"></div></div>' +
+        '<div class="kv"><span class="k">Plan</span><span class="v">enterprise</span></div>' +
+      '</div>' +
+      '<div class="card">' +
+        '<div class="label">Usage by model</div>' +
+        '<table><thead><tr><th>Model</th><th>$</th><th>Req</th><th>Tok</th></tr></thead><tbody>' +
+        '<tr><td>claude-opus</td><td class="cost">$3.42</td><td>86</td><td>1.2M</td></tr>' +
+        '<tr><td>gpt-5</td><td class="cost">$1.10</td><td>41</td><td>612K</td></tr>' +
+        '<tr><td>auto</td><td class="cost">$0.28</td><td>288</td><td>3.4M</td></tr>' +
+        '</tbody></table>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function statusbar() {
+    return '<div class="statusbar">' +
+      '<span class="sb dim"><svg viewBox="0 0 24 24"><path d="M6 3v12M18 9a3 3 0 1 0 0 .01M6 21a3 3 0 1 0 0 .01M6 15a6 6 0 0 0 6 6"/></svg>main</span>' +
+      '<span class="spacer"></span>' +
+      '<span class="sb warn">' + watch + ' 415/500</span>' +
+      '<span class="sb">$0/$75</span>' +
+      '<span class="sb dim">UTF-8</span>' +
+    '</div>';
+  }
+
+  function renderWindow(light) {
+    return '<div class="app' + (light ? ' light' : '') + '">' +
+      '<div class="titlebar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>' +
+      '<span class="title">' + (light ? 'Light theme' : 'Dark theme') + '</span></div>' +
+      '<div class="sidebar">' + panel() + '</div>' +
+      statusbar() +
+    '</div>';
+  }
+
+  const mode = location.hash.replace('#', '');
+  let content;
+  if (mode === 'dark') content = renderWindow(false);
+  else if (mode === 'light') { content = renderWindow(true); document.body.style.background = '#e8ebef'; }
+  else content = '<div class="pair">' + renderWindow(false) + renderWindow(true) + '</div>';
+  document.getElementById('stack').innerHTML = content;
+  void files; void search; void gauge; void code;
+</script>
+</body>
+</html>
