@@ -2,7 +2,7 @@
   "name": "cursor-usage",
   "displayName": "Cursor Usage",
   "description": "Live Cursor usage in your status bar and sidebar — reuses Cursor's own local session, no login.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "local",
   "license": "MIT",
   "repository": {
