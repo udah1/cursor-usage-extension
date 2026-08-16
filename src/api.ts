@@ -1,7 +1,11 @@
 import * as https from "node:https";
 
 const HOST = "cursor.com";
-const TIMEOUT_MS = 8000;
+/** Generous enough to survive a cold TLS handshake or a machine waking from sleep. */
+const TIMEOUT_MS = 15000;
+/** One initial call plus one retry; auth errors are never retried here. */
+const MAX_ATTEMPTS = 2;
+const RETRY_DELAY_MS = 800;
 const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " +
   "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
@@ -16,6 +20,18 @@ export class HttpError extends Error {
 
 export function isAuthError(err: unknown): boolean {
   return err instanceof HttpError && (err.status === 401 || err.status === 403);
+}
+
+/** Network blips, timeouts, rate limits and server errors are worth another try. */
+function isRetryable(err: unknown): boolean {
+  if (err instanceof HttpError) {
+    return err.status === 429 || err.status >= 500;
+  }
+  return true;
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function baseHeaders(cookie: string): Record<string, string> {
@@ -85,12 +101,33 @@ function request<T>(
   });
 }
 
+async function requestWithRetry<T>(
+  method: "GET" | "POST",
+  pathname: string,
+  cookie: string,
+  body?: unknown
+): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      return await request<T>(method, pathname, cookie, body);
+    } catch (err) {
+      lastError = err;
+      if (attempt === MAX_ATTEMPTS || !isRetryable(err)) {
+        break;
+      }
+      await delay(RETRY_DELAY_MS * attempt);
+    }
+  }
+  throw lastError;
+}
+
 export function getJson<T>(pathname: string, cookie: string): Promise<T> {
-  return request<T>("GET", pathname, cookie);
+  return requestWithRetry<T>("GET", pathname, cookie);
 }
 
 export function postJson<T>(pathname: string, cookie: string, body: unknown): Promise<T> {
-  return request<T>("POST", pathname, cookie, body);
+  return requestWithRetry<T>("POST", pathname, cookie, body);
 }
 
 /* -------------------------------------------------------------------------- */

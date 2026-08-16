@@ -116,6 +116,9 @@ function buildTooltip(r: Extract<UsageResult, { state: "ok" }>): vscode.Markdown
   if (r.daysLeft != null) {
     md.appendMarkdown(`Resets in ${r.daysLeft.toFixed(1)}d\n\n`);
   }
+  if (r.stale) {
+    md.appendMarkdown(`$(warning) Couldn't refresh — showing last known values\n\n`);
+  }
   md.appendMarkdown(`_Click to open details_`);
   return md;
 }

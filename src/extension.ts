@@ -7,10 +7,13 @@ import { fetchLatestRelease, isNewer } from "./update";
 const UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const LAST_CHECK_KEY = "cursorUsage.lastUpdateCheck";
 const SKIPPED_VERSION_KEY = "cursorUsage.skippedVersion";
+/** After a failed refresh, try again well before the next regular poll. */
+const RETRY_AFTER_FAILURE_MS = 65_000;
 
 let statusBar: StatusBar | undefined;
 let viewProvider: UsageViewProvider | undefined;
 let pollTimer: ReturnType<typeof setInterval> | undefined;
+let retryTimer: ReturnType<typeof setTimeout> | undefined;
 let refreshing = false;
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -143,6 +146,28 @@ function stopPolling(): void {
     clearInterval(pollTimer);
     pollTimer = undefined;
   }
+  cancelRetry();
+}
+
+function cancelRetry(): void {
+  if (retryTimer) {
+    clearTimeout(retryTimer);
+    retryTimer = undefined;
+  }
+}
+
+/**
+ * Queue a single follow-up attempt after a failure, so a transient network blip
+ * recovers within a minute instead of waiting for the next poll.
+ */
+function scheduleRetry(): void {
+  if (retryTimer || !vscode.workspace.getConfiguration("cursorUsage").get<boolean>("enable", true)) {
+    return;
+  }
+  retryTimer = setTimeout(() => {
+    retryTimer = undefined;
+    void refresh(false);
+  }, RETRY_AFTER_FAILURE_MS);
 }
 
 async function refresh(force: boolean): Promise<void> {
@@ -154,6 +179,12 @@ async function refresh(force: boolean): Promise<void> {
     // Keep showing the last good result while a refresh is in flight.
     const result = await fetchUsage(force);
     render(result);
+
+    if (result.state === "error" || (result.state === "ok" && result.stale)) {
+      scheduleRetry();
+    } else {
+      cancelRetry();
+    }
   } finally {
     refreshing = false;
   }

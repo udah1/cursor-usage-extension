@@ -160,6 +160,7 @@ export class UsageViewProvider implements vscode.WebviewViewProvider {
   td.cost { color: var(--ok); }
   .foot { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
   .stamp { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+  .stamp.stale { color: var(--warn); }
   button {
     display: inline-flex; align-items: center; gap: 5px; cursor: pointer;
     font-family: var(--vscode-font-family); font-size: 12px;
@@ -185,6 +186,7 @@ export class UsageViewProvider implements vscode.WebviewViewProvider {
   .clickable:hover { border-color: var(--vscode-focusBorder, var(--muted)); }
   .hint { display: flex; align-items: center; justify-content: center; gap: 4px;
     margin-top: 4px; font-size: 10px; color: var(--muted); }
+  .hint.stale { color: var(--warn); }
   .linkbar { display: flex; justify-content: center; margin-top: 6px; }
   .link { background: none; border: none; padding: 2px 6px; cursor: pointer;
     font-family: var(--vscode-font-family); font-size: 11px;
@@ -350,8 +352,11 @@ export class UsageViewProvider implements vscode.WebviewViewProvider {
     }
 
     function foot(d) {
-      return '<div class="foot"><span class="stamp">updated ' + ago(d.fetchedAt) + '</span>' +
-        '<button id="refresh">Refresh</button></div>';
+      const stamp = d.stale
+        ? '<span class="stamp stale" title="' + esc(d.staleError || "") +
+          '">&#9888; couldn\\'t refresh · showing ' + ago(d.fetchedAt) + '</span>'
+        : '<span class="stamp">updated ' + ago(d.fetchedAt) + '</span>';
+      return '<div class="foot">' + stamp + '<button id="refresh">Refresh</button></div>';
     }
 
     function renderFull(d) {
@@ -375,7 +380,9 @@ export class UsageViewProvider implements vscode.WebviewViewProvider {
         '<div class="row"><span class="v" style="font-family:var(--mono)">' + money(d.onDemandUsed) +
         ' / ' + money(d.onDemandLimit) + '</span><span class="chip ' + sev(pctSpend) + '">' +
         Math.round(pctSpend) + '%</span></div>'
-      ) + '<div class="hint">&#9660; Click a card for full details</div>';
+      ) + (d.stale
+        ? '<div class="hint stale">&#9888; couldn\\'t refresh · showing ' + ago(d.fetchedAt) + '</div>'
+        : '<div class="hint">&#9660; Click a card for full details</div>');
     }
 
     vscode.postMessage({ type: "ready" });

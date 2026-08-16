@@ -54,6 +54,11 @@ export interface UsageOk {
 
   // Team per-model table (best-effort)
   models?: ModelRow[];
+
+  /** True when this is cached data kept on screen after a refresh failed. */
+  stale?: boolean;
+  /** Why the last refresh failed, when `stale` is set. */
+  staleError?: string;
 }
 
 export type UsageResult =
@@ -114,6 +119,11 @@ export async function fetchUsage(force = false): Promise<UsageResult> {
     .then((res) => {
       if (res.state === "ok") {
         lastGood = res;
+        return res;
+      }
+      // A transient failure must never wipe data we already have on screen.
+      if (res.state === "error" && lastGood) {
+        return { ...lastGood, stale: true, staleError: res.error };
       }
       return res;
     })
