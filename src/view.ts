@@ -12,6 +12,7 @@ export class UsageViewProvider implements vscode.WebviewViewProvider {
 
   constructor(
     private readonly extensionUri: vscode.Uri,
+    private readonly version: string,
     private readonly onRefresh: () => void
   ) {}
 
@@ -67,6 +68,7 @@ export class UsageViewProvider implements vscode.WebviewViewProvider {
     this.view.webview.postMessage({
       type: "update",
       detailLevel: this.detailLevel(),
+      version: this.version,
       data: this.last ?? null,
     });
   }
@@ -187,6 +189,8 @@ export class UsageViewProvider implements vscode.WebviewViewProvider {
   .hint { display: flex; align-items: center; justify-content: center; gap: 4px;
     margin-top: 4px; font-size: 10px; color: var(--muted); }
   .hint.stale { color: var(--warn); }
+  .version { text-align: center; margin-top: 8px; font-family: var(--mono);
+    font-size: 10px; color: var(--muted); opacity: .8; }
   .linkbar { display: flex; justify-content: center; margin-top: 6px; }
   .link { background: none; border: none; padding: 2px 6px; cursor: pointer;
     font-family: var(--vscode-font-family); font-size: 11px;
@@ -198,13 +202,13 @@ export class UsageViewProvider implements vscode.WebviewViewProvider {
   <div id="app"><div class="loading">Loading usage…</div></div>
   <script nonce="${nonce}">
     const vscode = acquireVsCodeApi();
-    let state = { data: null, detailLevel: "auto" };
+    let state = { data: null, detailLevel: "auto", version: "" };
     let expanded = false; // user tapped a compact card to see everything
 
     window.addEventListener("message", (e) => {
       const m = e.data;
       if (m && m.type === "update") {
-        state = { data: m.data, detailLevel: m.detailLevel };
+        state = { data: m.data, detailLevel: m.detailLevel, version: m.version };
         render();
       }
     });
@@ -281,7 +285,7 @@ export class UsageViewProvider implements vscode.WebviewViewProvider {
         });
       } else {
         const collapsible = expanded && autoCompact;
-        app.innerHTML = renderFull(d) + (collapsible
+        app.innerHTML = renderFull(d) + versionLine() + (collapsible
           ? '<div class="linkbar"><button class="link" id="collapse">Show less</button></div>'
           : "");
         const rf = document.getElementById("refresh");
@@ -299,6 +303,10 @@ export class UsageViewProvider implements vscode.WebviewViewProvider {
     }
 
     function card(inner) { return '<div class="card">' + inner + "</div>"; }
+
+    function versionLine() {
+      return state.version ? '<div class="version">v' + esc(state.version) + '</div>' : "";
+    }
 
     function requestsCard(d) {
       const s = sev(d.pct);

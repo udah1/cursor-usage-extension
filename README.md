@@ -89,8 +89,14 @@ Install the `.vsix`: Command Palette → **Extensions: Install from VSIX…**
 
 The extension checks the [GitHub Releases](https://github.com/udah1/cursor-usage-extension/releases)
 API once a day (in the background) and notifies you when a newer version is available, with
-**Download** / **Release Notes** / **Skip This Version** actions. Disable via
-`cursorUsage.checkForUpdates`, or run **Cursor Usage: Check for Updates** anytime.
+**Update Now** / **Release Notes** / **Skip This Version** actions.
+
+**Update Now** installs the new version in place — it downloads the release `.vsix` to a temp file,
+hands it to VS Code's installer, cleans up, and then offers to reload the window. No manual download
+or drag-and-drop. Disable the check via `cursorUsage.checkForUpdates`, or run
+**Cursor Usage: Check for Updates** anytime.
+
+The installed version is shown at the bottom of the panel and in the status-bar tooltip.
 
 ## Caveats
 

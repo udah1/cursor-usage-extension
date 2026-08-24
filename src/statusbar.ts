@@ -16,7 +16,7 @@ export class StatusBar implements vscode.Disposable {
   private readonly requests: vscode.StatusBarItem;
   private readonly spend: vscode.StatusBarItem;
 
-  constructor() {
+  constructor(private readonly version: string) {
     this.requests = vscode.window.createStatusBarItem(
       "cursorUsage.requests",
       vscode.StatusBarAlignment.Right,
@@ -64,7 +64,7 @@ export class StatusBar implements vscode.Disposable {
 
     this.requests.text = `$(watch) ${result.used}/${result.limit}`;
     this.requests.color = severityColor(reqPct);
-    this.requests.tooltip = buildTooltip(result);
+    this.requests.tooltip = buildTooltip(result, this.version);
 
     const usedStr = formatMoney(result.onDemandUsed);
     const limitStr = formatMoney(result.onDemandLimit);
@@ -106,7 +106,10 @@ function formatMoney(dollars: number): string {
   return `$${rounded.toFixed(2)}`;
 }
 
-function buildTooltip(r: Extract<UsageResult, { state: "ok" }>): vscode.MarkdownString {
+function buildTooltip(
+  r: Extract<UsageResult, { state: "ok" }>,
+  version: string
+): vscode.MarkdownString {
   const md = new vscode.MarkdownString(undefined, true);
   md.appendMarkdown(`**Cursor Usage** — ${r.membershipType}\n\n`);
   md.appendMarkdown(`Requests: **${r.used} / ${r.limit}** (${r.pct}%), ${r.remaining} left\n\n`);
@@ -119,6 +122,6 @@ function buildTooltip(r: Extract<UsageResult, { state: "ok" }>): vscode.Markdown
   if (r.stale) {
     md.appendMarkdown(`$(warning) Couldn't refresh — showing last known values\n\n`);
   }
-  md.appendMarkdown(`_Click to open details_`);
+  md.appendMarkdown(`_Click to open details · v${version}_`);
   return md;
 }
