@@ -5,6 +5,7 @@ import { StatusBar } from "./statusbar";
 import { UsageViewProvider } from "./view";
 import { downloadVsix, fetchLatestRelease, isNewer, UpdateInfo } from "./update";
 
+const DASHBOARD_USAGE_URL = "https://cursor.com/dashboard/usage";
 const UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const LAST_CHECK_KEY = "cursorUsage.lastUpdateCheck";
 const SKIPPED_VERSION_KEY = "cursorUsage.skippedVersion";
@@ -37,6 +38,9 @@ export function activate(context: vscode.ExtensionContext): void {
       await viewProvider?.reveal();
     }),
     vscode.commands.registerCommand("cursorUsage.refresh", () => void refresh(true)),
+    vscode.commands.registerCommand("cursorUsage.openDashboard", () => {
+      void vscode.env.openExternal(vscode.Uri.parse(DASHBOARD_USAGE_URL));
+    }),
     vscode.commands.registerCommand("cursorUsage.checkForUpdates", () =>
       void checkForUpdates(context, true)
     )

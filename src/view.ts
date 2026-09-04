@@ -27,6 +27,8 @@ export class UsageViewProvider implements vscode.WebviewViewProvider {
     webviewView.webview.onDidReceiveMessage((msg: { type?: string }) => {
       if (msg?.type === "refresh" || msg?.type === "reconnect") {
         this.onRefresh();
+      } else if (msg?.type === "openDashboard") {
+        void vscode.commands.executeCommand("cursorUsage.openDashboard");
       } else if (msg?.type === "ready") {
         this.post();
       }
@@ -160,7 +162,8 @@ export class UsageViewProvider implements vscode.WebviewViewProvider {
   td:first-child { color: var(--vscode-foreground); }
   tr:last-child td { border-bottom: none; }
   td.cost { color: var(--ok); }
-  .foot { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
+  .foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; }
+  .foot-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
   .stamp { font-family: var(--mono); font-size: 10px; color: var(--muted); }
   .stamp.stale { color: var(--warn); }
   button {
@@ -170,6 +173,7 @@ export class UsageViewProvider implements vscode.WebviewViewProvider {
     background: var(--vscode-button-secondaryBackground, transparent);
     border: 1px solid var(--border); border-radius: 4px; padding: 3px 10px;
   }
+  button svg { width: 12px; height: 12px; flex-shrink: 0; }
   button:hover { background: var(--vscode-button-secondaryHoverBackground, rgba(128,128,128,.15)); }
   button.primary {
     color: var(--vscode-button-foreground);
@@ -290,6 +294,8 @@ export class UsageViewProvider implements vscode.WebviewViewProvider {
           : "");
         const rf = document.getElementById("refresh");
         if (rf) rf.onclick = () => vscode.postMessage({ type: "refresh" });
+        const dash = document.getElementById("dashboard");
+        if (dash) dash.onclick = () => vscode.postMessage({ type: "openDashboard" });
         const cl = document.getElementById("collapse");
         if (cl) cl.onclick = () => { expanded = false; render(); };
       }
@@ -364,7 +370,15 @@ export class UsageViewProvider implements vscode.WebviewViewProvider {
         ? '<span class="stamp stale" title="' + esc(d.staleError || "") +
           '">&#9888; couldn\\'t refresh · showing ' + ago(d.fetchedAt) + '</span>'
         : '<span class="stamp">updated ' + ago(d.fetchedAt) + '</span>';
-      return '<div class="foot">' + stamp + '<button id="refresh">Refresh</button></div>';
+      return '<div class="foot">' + stamp +
+        '<div class="foot-actions">' +
+        '<button id="dashboard" title="Open cursor.com/dashboard/usage">' +
+        '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        '<path d="M6 3H3.5A1.5 1.5 0 0 0 2 4.5v8A1.5 1.5 0 0 0 3.5 14h8A1.5 1.5 0 0 0 13 12.5V10"/>' +
+        '<path d="M8 8l6-6M10 2h4v4"/>' +
+        '</svg>Usage</button>' +
+        '<button id="refresh">Refresh</button>' +
+        '</div></div>';
     }
 
     function renderFull(d) {

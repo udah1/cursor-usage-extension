@@ -2,8 +2,9 @@
   "name": "cursor-usage",
   "displayName": "Cursor Usage",
   "description": "Live Cursor usage in your status bar and sidebar — reuses Cursor's own local session, no login.",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "publisher": "udah1",
+  "icon": "media/icon.png",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -61,6 +62,11 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "cursorUsage.openDashboard",
+        "title": "Cursor Usage: Open Dashboard",
+        "icon": "$(link-external)"
+      },
+      {
         "command": "cursorUsage.checkForUpdates",
         "title": "Cursor Usage: Check for Updates"
       }
@@ -68,9 +74,14 @@
     "menus": {
       "view/title": [
         {
+          "command": "cursorUsage.openDashboard",
+          "when": "view == cursorUsage.detail",
+          "group": "navigation@1"
+        },
+        {
           "command": "cursorUsage.refresh",
           "when": "view == cursorUsage.detail",
-          "group": "navigation"
+          "group": "navigation@2"
         }
       ]
     },
