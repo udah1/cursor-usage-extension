@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="meter" x1="14" y1="86" x2="114" y2="86" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#15803d"/>
+      <stop offset="22%" stop-color="#4ade80"/>
+      <stop offset="50%" stop-color="#eab308"/>
+      <stop offset="78%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#dc2626"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="#16161e"/>
+  <!-- true 180deg semicircle, left (empty/green) to right (full/red) -->
+  <path d="M18 88 A 46 46 0 0 1 110 88"
+        fill="none" stroke="url(#meter)" stroke-width="18" stroke-linecap="round"/>
+  <g transform="translate(64 88) rotate(-42)">
+    <polygon points="34,0 -7,-4.5 -7,4.5" fill="#eceff4"/>
+    <circle r="7" fill="#eceff4"/>
+    <circle r="3.2" fill="#16161e"/>
+  </g>
+</svg>
