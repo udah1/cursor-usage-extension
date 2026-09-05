@@ -140,13 +140,37 @@ export interface AuthMe {
 }
 
 export interface LegacyUsageBucket {
-  numRequests: number;
-  maxRequestUsage: number;
+  numRequests?: number;
+  maxRequestUsage?: number | null;
 }
 
 export interface UsageResponse {
   ["gpt-4"]?: LegacyUsageBucket;
   startOfMonth?: string;
+}
+
+export interface PlanBreakdown {
+  included?: number;
+  bonus?: number;
+  total?: number;
+}
+
+export interface PlanUsage {
+  enabled?: boolean;
+  used?: number;
+  limit?: number;
+  remaining?: number;
+  breakdown?: PlanBreakdown;
+  autoPercentUsed?: number;
+  apiPercentUsed?: number;
+  totalPercentUsed?: number;
+}
+
+export interface OnDemandUsage {
+  enabled?: boolean;
+  used?: number;
+  limit?: number | null;
+  remaining?: number | null;
 }
 
 export interface UsageSummary {
@@ -155,9 +179,11 @@ export interface UsageSummary {
   limitType?: string;
   billingCycleStart?: string;
   billingCycleEnd?: string;
+  autoModelSelectedDisplayMessage?: string;
+  namedModelSelectedDisplayMessage?: string;
   individualUsage?: {
-    plan?: { used?: number; totalPercentUsed?: number };
-    onDemand?: { used?: number; limit?: number; remaining?: number };
+    plan?: PlanUsage;
+    onDemand?: OnDemandUsage;
   };
 }
 
@@ -167,16 +193,37 @@ export interface TeamsResponse {
 
 export interface HardLimitResponse {
   hardLimitPerUser?: number;
+  noUsageBasedAllowed?: boolean;
+}
+
+export interface PlanInfo {
+  planName?: string;
+  includedAmountCents?: number;
+  price?: string;
+  billingCycleEnd?: string;
+}
+
+export interface PlanInfoResponse {
+  planInfo?: PlanInfo;
+}
+
+export interface SandUsageStatus {
+  usagePercent?: number;
+  nextResetTimestampUtc?: string;
+  currentPeriodStart?: string;
+  hasAvailableUsage?: boolean;
+  hasNonZeroIncludedLimit?: boolean;
+  grokPlanLabel?: string;
 }
 
 export interface AggregationRow {
   modelIntent?: string;
   totalCents?: number;
   requestCost?: number;
-  inputTokens?: number;
-  outputTokens?: number;
-  cacheReadTokens?: number;
-  cacheWriteTokens?: number;
+  inputTokens?: number | string;
+  outputTokens?: number | string;
+  cacheReadTokens?: number | string;
+  cacheWriteTokens?: number | string;
 }
 
 export interface AggregatedUsageResponse {
@@ -203,10 +250,16 @@ export const endpoints = {
   hardLimit: (cookie: string, teamId: number) =>
     postJson<HardLimitResponse>("/api/dashboard/get-hard-limit", cookie, { teamId }),
 
-  aggregatedUsage: (cookie: string, teamId: number) =>
+  aggregatedUsage: (cookie: string, teamId?: number) =>
     postJson<AggregatedUsageResponse>(
       "/api/dashboard/get-aggregated-usage-events",
       cookie,
-      { teamId }
+      teamId != null ? { teamId } : {}
     ),
+
+  planInfo: (cookie: string) =>
+    postJson<PlanInfoResponse>("/api/dashboard/get-plan-info", cookie, {}),
+
+  sandUsage: (cookie: string) =>
+    postJson<SandUsageStatus>("/api/dashboard/get-sand-usage-status", cookie, {}),
 };

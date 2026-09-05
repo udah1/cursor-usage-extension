@@ -58,22 +58,44 @@ export class StatusBar implements vscode.Disposable {
       return;
     }
 
+    this.requests.tooltip = buildTooltip(result, this.version);
+    this.spend.tooltip = this.requests.tooltip;
+
+    if (result.meterMode === "spending") {
+      const auto = result.autoPercentUsed ?? 0;
+      const api = result.apiPercentUsed ?? 0;
+      this.requests.name = "Cursor Usage — Models";
+      this.requests.text = `$(watch) ${fmtPct(auto)} · ${fmtPct(api)}`;
+      this.requests.color = severityColor(Math.max(auto, api));
+      this.requests.show();
+      if (result.onDemandEnabled) {
+        const spendPct =
+          result.onDemandLimit > 0 ? (result.onDemandUsed / result.onDemandLimit) * 100 : 0;
+        this.spend.text = `${formatMoney(result.onDemandUsed)}/${formatMoney(result.onDemandLimit)}`;
+        this.spend.color = severityColor(spendPct);
+        this.spend.show();
+      } else {
+        this.spend.hide();
+      }
+      return;
+    }
+
     const reqPct = result.limit > 0 ? (result.used / result.limit) * 100 : 0;
     const spendPct =
       result.onDemandLimit > 0 ? (result.onDemandUsed / result.onDemandLimit) * 100 : 0;
 
+    this.requests.name = "Cursor Usage — Requests";
     this.requests.text = `$(watch) ${result.used}/${result.limit}`;
     this.requests.color = severityColor(reqPct);
-    this.requests.tooltip = buildTooltip(result, this.version);
-
-    const usedStr = formatMoney(result.onDemandUsed);
-    const limitStr = formatMoney(result.onDemandLimit);
-    this.spend.text = `${usedStr}/${limitStr}`;
-    this.spend.color = severityColor(spendPct);
-    this.spend.tooltip = this.requests.tooltip;
-
     this.requests.show();
-    this.spend.show();
+
+    if (result.onDemandEnabled) {
+      this.spend.text = `${formatMoney(result.onDemandUsed)}/${formatMoney(result.onDemandLimit)}`;
+      this.spend.color = severityColor(spendPct);
+      this.spend.show();
+    } else {
+      this.spend.hide();
+    }
   }
 
   dispose(): void {
@@ -106,16 +128,49 @@ function formatMoney(dollars: number): string {
   return `$${rounded.toFixed(2)}`;
 }
 
+function fmtPct(n: number): string {
+  if (n > 0 && n < 1) {
+    return `${n.toFixed(1)}%`;
+  }
+  return `${Math.round(n)}%`;
+}
+
+function planLabel(r: Extract<UsageResult, { state: "ok" }>): string {
+  if (r.planName && r.planPrice) {
+    return `${r.planName} · ${r.planPrice}`;
+  }
+  return r.planName || r.membershipType;
+}
+
 function buildTooltip(
   r: Extract<UsageResult, { state: "ok" }>,
   version: string
 ): vscode.MarkdownString {
   const md = new vscode.MarkdownString(undefined, true);
-  md.appendMarkdown(`**Cursor Usage** — ${r.membershipType}\n\n`);
-  md.appendMarkdown(`Requests: **${r.used} / ${r.limit}** (${r.pct}%), ${r.remaining} left\n\n`);
-  md.appendMarkdown(
-    `On-demand: **${formatMoney(r.onDemandUsed)} / ${formatMoney(r.onDemandLimit)}**\n\n`
-  );
+  md.appendMarkdown(`**Cursor Usage** — ${planLabel(r)}\n\n`);
+  if (r.meterMode === "spending") {
+    if (r.autoPercentUsed != null) {
+      md.appendMarkdown(`Cursor Models: **${fmtPct(r.autoPercentUsed)}**\n\n`);
+    }
+    if (r.apiPercentUsed != null) {
+      md.appendMarkdown(`Other Models: **${fmtPct(r.apiPercentUsed)}**\n\n`);
+    }
+    if (r.grokBot) {
+      md.appendMarkdown(`Grok Bot: **${fmtPct(r.grokBot.percent)}**\n\n`);
+    }
+    md.appendMarkdown(
+      r.onDemandEnabled
+        ? `On-demand: **${formatMoney(r.onDemandUsed)} / ${formatMoney(r.onDemandLimit)}**\n\n`
+        : `On-demand: **Disabled**\n\n`
+    );
+  } else {
+    md.appendMarkdown(`Requests: **${r.used} / ${r.limit}** (${r.pct}%), ${r.remaining} left\n\n`);
+    md.appendMarkdown(
+      r.onDemandEnabled
+        ? `On-demand: **${formatMoney(r.onDemandUsed)} / ${formatMoney(r.onDemandLimit)}**\n\n`
+        : `On-demand: **Disabled**\n\n`
+    );
+  }
   if (r.daysLeft != null) {
     md.appendMarkdown(`Resets in ${r.daysLeft.toFixed(1)}d\n\n`);
   }

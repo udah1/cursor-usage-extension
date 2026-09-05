@@ -6,6 +6,7 @@ import { UsageViewProvider } from "./view";
 import { downloadVsix, fetchLatestRelease, isNewer, UpdateInfo } from "./update";
 
 const DASHBOARD_USAGE_URL = "https://cursor.com/dashboard/usage";
+const DASHBOARD_SPENDING_URL = "https://cursor.com/dashboard/spending";
 const UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const LAST_CHECK_KEY = "cursorUsage.lastUpdateCheck";
 const SKIPPED_VERSION_KEY = "cursorUsage.skippedVersion";
@@ -39,7 +40,10 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
     vscode.commands.registerCommand("cursorUsage.refresh", () => void refresh(true)),
     vscode.commands.registerCommand("cursorUsage.openDashboard", () => {
-      void vscode.env.openExternal(vscode.Uri.parse(DASHBOARD_USAGE_URL));
+      const cached = getCached();
+      const url =
+        cached?.meterMode === "spending" ? DASHBOARD_SPENDING_URL : DASHBOARD_USAGE_URL;
+      void vscode.env.openExternal(vscode.Uri.parse(url));
     }),
     vscode.commands.registerCommand("cursorUsage.checkForUpdates", () =>
       void checkForUpdates(context, true)

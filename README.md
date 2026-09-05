@@ -83,7 +83,7 @@ Install the `.vsix`: Command Palette → **Extensions: Install from VSIX…**
 
 - **Cursor Usage: Show** — reveal the detail panel.
 - **Cursor Usage: Refresh** — force a refresh (respects the 60s throttle).
-- **Cursor Usage: Open Dashboard** — open [cursor.com/dashboard/usage](https://cursor.com/dashboard/usage) in the browser.
+- **Cursor Usage: Open Dashboard** — open the Cursor usage or spending dashboard in the browser.
 - **Cursor Usage: Check for Updates** — check GitHub for a newer release now.
 
 ## Updates

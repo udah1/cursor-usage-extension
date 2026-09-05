@@ -277,41 +277,77 @@ export class UsageViewProvider implements vscode.WebviewViewProvider {
         return;
       }
 
-      // ok
-      const autoCompact = state.detailLevel === "auto" && window.innerHeight < 340;
+      // ok — auto/compact start folded; Show more/less is always available unless
+      // the user locked detailLevel to "full".
       const mode = pickMode();
-
+      app.innerHTML = (mode === "compact" ? renderCompact(d) : renderFull(d)) +
+        foot(d) + versionLine() + toggleLink(mode);
+      bindFoot();
+      const more = document.getElementById("expand");
+      if (more) more.onclick = () => { expanded = true; render(); };
+      const less = document.getElementById("collapse");
+      if (less) less.onclick = () => { expanded = false; render(); };
       if (mode === "compact") {
-        app.innerHTML = renderCompact(d);
-        // Any card expands to the full view when height is limited.
         app.querySelectorAll("[data-expand]").forEach((el) => {
           el.onclick = () => { expanded = true; render(); };
         });
-      } else {
-        const collapsible = expanded && autoCompact;
-        app.innerHTML = renderFull(d) + versionLine() + (collapsible
-          ? '<div class="linkbar"><button class="link" id="collapse">Show less</button></div>'
-          : "");
-        const rf = document.getElementById("refresh");
-        if (rf) rf.onclick = () => vscode.postMessage({ type: "refresh" });
-        const dash = document.getElementById("dashboard");
-        if (dash) dash.onclick = () => vscode.postMessage({ type: "openDashboard" });
-        const cl = document.getElementById("collapse");
-        if (cl) cl.onclick = () => { expanded = false; render(); };
       }
     }
 
     function pickMode() {
-      if (state.detailLevel === "compact") return "compact";
       if (state.detailLevel === "full") return "full";
       if (expanded) return "full";
-      return window.innerHeight >= 340 ? "full" : "compact";
+      return "compact";
+    }
+
+    function toggleLink(mode) {
+      if (state.detailLevel === "full") return "";
+      if (mode === "compact") {
+        return '<div class="linkbar"><button class="link" id="expand">Show more</button></div>';
+      }
+      return '<div class="linkbar"><button class="link" id="collapse">Show less</button></div>';
+    }
+
+    function bindFoot() {
+      const rf = document.getElementById("refresh");
+      if (rf) rf.onclick = () => vscode.postMessage({ type: "refresh" });
+      const dash = document.getElementById("dashboard");
+      if (dash) dash.onclick = () => vscode.postMessage({ type: "openDashboard" });
+    }
+
+    function fmtPct(n) {
+      if (n == null || !isFinite(n)) return "0%";
+      if (n > 0 && n < 1) return n.toFixed(1) + "%";
+      return Math.round(n) + "%";
+    }
+    function planLabel(d) {
+      if (d.planName && d.planPrice) return d.planName + " · " + d.planPrice;
+      return d.planName || d.membershipType || "";
     }
 
     function card(inner) { return '<div class="card">' + inner + "</div>"; }
 
     function versionLine() {
       return state.version ? '<div class="version">v' + esc(state.version) + '</div>' : "";
+    }
+
+    function resetLine(d) {
+      if (!d.billingCycleEnd) return "";
+      return '<div class="reset">Resets ' + esc(fmtDate(d.billingCycleEnd)) +
+        (d.daysLeft != null ? ' · ' + d.daysLeft.toFixed(1) + 'd left' : '') + '</div>';
+    }
+
+    function percentCard(label, pct, extra) {
+      const p = pct == null || !isFinite(pct) ? 0 : pct;
+      const s = sev(p);
+      return card(
+        '<div class="row"><span class="label">' + esc(label) + '</span>' +
+        '<span class="chip ' + s + '">' + fmtPct(p) + '</span></div>' +
+        '<div class="row" style="margin-top:6px"><span class="big ' + (s === "ok" ? "" : s) + '">' +
+        fmtPct(p) + '</span></div>' +
+        '<div class="track"><div class="fill ' + s + '" style="width:' + Math.min(100, p) + '%"></div></div>' +
+        (extra || "")
+      );
     }
 
     function requestsCard(d) {
@@ -324,8 +360,7 @@ export class UsageViewProvider implements vscode.WebviewViewProvider {
         d.used + '<span class="unit"> / ' + d.limit + '</span></span>' +
         '<span class="meta"><b>' + d.remaining + '</b> left</span></div>' +
         '<div class="track"><div class="fill ' + s + '" style="width:' + Math.min(100, d.pct) + '%"></div></div>' +
-        (d.billingCycleEnd ? '<div class="reset">Resets ' + esc(fmtDate(d.billingCycleEnd)) +
-          (d.daysLeft != null ? ' · ' + d.daysLeft.toFixed(1) + 'd left' : '') + '</div>' : '') +
+        resetLine(d) +
         burn(d)
       );
     }
@@ -338,6 +373,15 @@ export class UsageViewProvider implements vscode.WebviewViewProvider {
     }
 
     function spendCard(d) {
+      const plan = '<div class="kv"><span class="k">Plan</span><span class="v">' + esc(planLabel(d)) + '</span></div>';
+      if (!d.onDemandEnabled) {
+        return card(
+          '<div class="row"><span class="label">On-demand spend</span>' +
+          '<span class="chip">off</span></div>' +
+          '<div class="row" style="margin-top:6px"><span class="big"><span class="unit">Disabled</span></span></div>' +
+          plan
+        );
+      }
       const pct = d.onDemandLimit > 0 ? (d.onDemandUsed / d.onDemandLimit) * 100 : 0;
       const s = sev(pct);
       const rem = money(d.onDemandRemaining);
@@ -348,41 +392,72 @@ export class UsageViewProvider implements vscode.WebviewViewProvider {
         money(d.onDemandUsed) + '<span class="unit"> / ' + money(d.onDemandLimit) + '</span></span>' +
         '<span class="meta"><b>' + rem + '</b> left</span></div>' +
         '<div class="track"><div class="fill ' + s + '" style="width:' + Math.min(100, pct) + '%"></div></div>' +
-        '<div class="kv"><span class="k">Plan</span><span class="v">' + esc(d.membershipType) + '</span></div>'
+        plan
       );
+    }
+
+    function grokCard(d) {
+      if (!d.grokBot) return "";
+      const extra = d.grokBot.resetsAt
+        ? '<div class="reset">Weekly · resets ' + esc(fmtDate(d.grokBot.resetsAt)) +
+          (d.grokBot.daysLeft != null ? ' · ' + d.grokBot.daysLeft.toFixed(1) + 'd left' : '') + '</div>'
+        : "";
+      return percentCard("Grok Bot", d.grokBot.percent, extra);
     }
 
     function modelsCard(d) {
       if (!d.models || !d.models.length) return "";
+      const showReq = d.models.some((m) => m.requests > 0);
       const rows = d.models.map((m) =>
         '<tr><td>' + esc(m.model) + '</td><td class="cost">' + money(m.costDollars) +
-        '</td><td>' + m.requests + '</td><td>' + fmtTokens(m.inputTokens + m.outputTokens) + '</td></tr>'
+        '</td>' + (showReq ? '<td>' + m.requests + '</td>' : '') +
+        '<td>' + fmtTokens(m.inputTokens + m.outputTokens + (m.cacheReadTokens || 0) + (m.cacheWriteTokens || 0)) +
+        '</td></tr>'
       ).join("");
       return card(
         '<div class="label" style="margin-bottom:6px">Usage by model</div>' +
-        '<table><thead><tr><th>Model</th><th>$</th><th>Req</th><th>Tokens</th></tr></thead>' +
+        '<table><thead><tr><th>Model</th><th>$</th>' + (showReq ? '<th>Req</th>' : '') +
+        '<th>Tokens</th></tr></thead>' +
         '<tbody>' + rows + '</tbody></table>'
       );
     }
 
     function foot(d) {
+      const dashLabel = d.meterMode === "spending" ? "Spending" : "Usage";
+      const dashTitle = d.meterMode === "spending"
+        ? "Open cursor.com/dashboard/spending"
+        : "Open cursor.com/dashboard/usage";
       const stamp = d.stale
         ? '<span class="stamp stale" title="' + esc(d.staleError || "") +
           '">&#9888; couldn\\'t refresh · showing ' + ago(d.fetchedAt) + '</span>'
         : '<span class="stamp">updated ' + ago(d.fetchedAt) + '</span>';
       return '<div class="foot">' + stamp +
         '<div class="foot-actions">' +
-        '<button id="dashboard" title="Open cursor.com/dashboard/usage">' +
+        '<button id="dashboard" title="' + dashTitle + '">' +
         '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
         '<path d="M6 3H3.5A1.5 1.5 0 0 0 2 4.5v8A1.5 1.5 0 0 0 3.5 14h8A1.5 1.5 0 0 0 13 12.5V10"/>' +
         '<path d="M8 8l6-6M10 2h4v4"/>' +
-        '</svg>Usage</button>' +
+        '</svg>' + dashLabel + '</button>' +
         '<button id="refresh">Refresh</button>' +
         '</div></div>';
     }
 
+    function spendingHint(d) {
+      if (!d.includedExhausted) return "";
+      return '<div class="reset">Included usage limit reached' +
+        (d.includedLimitDollars ? ' (' + money(d.includedUsedDollars) + ' / ' + money(d.includedLimitDollars) + ')' : '') +
+        '</div>';
+    }
+
     function renderFull(d) {
-      return requestsCard(d) + spendCard(d) + modelsCard(d) + foot(d);
+      if (d.meterMode === "spending") {
+        return percentCard("Cursor Models", d.autoPercentUsed, resetLine(d) + spendingHint(d)) +
+          percentCard("Other Models", d.apiPercentUsed) +
+          grokCard(d) +
+          spendCard(d) +
+          modelsCard(d);
+      }
+      return requestsCard(d) + spendCard(d) + modelsCard(d);
     }
 
     function clickableCard(inner) {
@@ -390,6 +465,21 @@ export class UsageViewProvider implements vscode.WebviewViewProvider {
     }
 
     function renderCompact(d) {
+      if (d.meterMode === "spending") {
+        const auto = d.autoPercentUsed || 0;
+        const api = d.apiPercentUsed || 0;
+        return clickableCard(
+          '<div class="row"><span class="label">Cursor Models</span><span class="chip ' + sev(auto) + '">' +
+          fmtPct(auto) + '</span></div>' +
+          '<div class="track"><div class="fill ' + sev(auto) + '" style="width:' + Math.min(100, auto) + '%"></div></div>'
+        ) + clickableCard(
+          '<div class="row"><span class="label">Other Models</span><span class="chip ' + sev(api) + '">' +
+          fmtPct(api) + '</span></div>' +
+          '<div class="track"><div class="fill ' + sev(api) + '" style="width:' + Math.min(100, api) + '%"></div></div>'
+        ) + (d.stale
+          ? '<div class="hint stale">&#9888; couldn\\'t refresh · showing ' + ago(d.fetchedAt) + '</div>'
+          : "");
+      }
       const s = sev(d.pct);
       const pctSpend = d.onDemandLimit > 0 ? (d.onDemandUsed / d.onDemandLimit) * 100 : 0;
       return clickableCard(
@@ -399,12 +489,14 @@ export class UsageViewProvider implements vscode.WebviewViewProvider {
         '<div class="sub"><span><b>' + d.remaining + '</b> left</span><span>' +
         (d.daysLeft != null ? d.daysLeft.toFixed(1) + 'd left' : '') + '</span></div>'
       ) + clickableCard(
-        '<div class="row"><span class="v" style="font-family:var(--mono)">' + money(d.onDemandUsed) +
-        ' / ' + money(d.onDemandLimit) + '</span><span class="chip ' + sev(pctSpend) + '">' +
-        Math.round(pctSpend) + '%</span></div>'
+        d.onDemandEnabled
+          ? '<div class="row"><span class="v" style="font-family:var(--mono)">' + money(d.onDemandUsed) +
+            ' / ' + money(d.onDemandLimit) + '</span><span class="chip ' + sev(pctSpend) + '">' +
+            Math.round(pctSpend) + '%</span></div>'
+          : '<div class="row"><span class="meta">On-demand</span><span class="chip">off</span></div>'
       ) + (d.stale
         ? '<div class="hint stale">&#9888; couldn\\'t refresh · showing ' + ago(d.fetchedAt) + '</div>'
-        : '<div class="hint">&#9660; Click a card for full details</div>');
+        : "");
     }
 
     vscode.postMessage({ type: "ready" });
