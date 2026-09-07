@@ -41,8 +41,11 @@ export class StatusBar implements vscode.Disposable {
     }
 
     if (result.state === "needsAuth") {
-      this.requests.text = "$(warning) Cursor Usage: reconnect";
-      this.requests.tooltip = "Couldn't read a valid Cursor session token. Click to open.";
+      this.requests.text =
+        result.reason === "missingCli"
+          ? "$(warning) Cursor Usage: sqlite3 missing"
+          : "$(warning) Cursor Usage: reconnect";
+      this.requests.tooltip = `${result.title}: ${result.message}\nClick to open.`;
       this.requests.color = warnColor();
       this.spend.hide();
       this.requests.show();

@@ -4,6 +4,7 @@ import { fetchUsage, getCached, UsageResult } from "./usage";
 import { StatusBar } from "./statusbar";
 import { UsageViewProvider } from "./view";
 import { downloadVsix, fetchLatestRelease, isNewer, UpdateInfo } from "./update";
+import { setExtensionLogger } from "./log";
 
 const DASHBOARD_USAGE_URL = "https://cursor.com/dashboard/usage";
 const DASHBOARD_SPENDING_URL = "https://cursor.com/dashboard/spending";
@@ -23,6 +24,11 @@ export function activate(context: vscode.ExtensionContext): void {
   const cfg = () => vscode.workspace.getConfiguration("cursorUsage");
 
   const version = (context.extension.packageJSON as { version?: string }).version ?? "0.0.0";
+
+  const output = vscode.window.createOutputChannel("Cursor Usage");
+  context.subscriptions.push(output);
+  setExtensionLogger((message) => output.appendLine(`[${new Date().toISOString()}] ${message}`));
+  output.appendLine(`[${new Date().toISOString()}] Cursor Usage v${version} activated`);
 
   statusBar = new StatusBar(version);
   context.subscriptions.push(statusBar);

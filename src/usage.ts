@@ -1,4 +1,5 @@
-import { readAuthContext, AuthContext } from "./auth";
+import { readAuthContext, sessionExpiredFailure, AuthContext, AuthFailure } from "./auth";
+import { log, sanitizeError } from "./log";
 import {
   endpoints,
   isAuthError,
@@ -90,7 +91,7 @@ export interface UsageOk {
 
 export type UsageResult =
   | UsageOk
-  | { state: "needsAuth" }
+  | ({ state: "needsAuth" } & AuthFailure)
   | { state: "error"; error: string };
 
 /* -------------------------------------------------------------------------- */
@@ -198,27 +199,34 @@ export async function fetchUsage(force = false): Promise<UsageResult> {
   return inFlight;
 }
 
+function toNeedsAuth(failure: AuthFailure): UsageResult {
+  return { state: "needsAuth", ...failure };
+}
+
 async function doFetch(): Promise<UsageResult> {
-  let auth = await readAuthContext();
-  if (!auth) {
-    return { state: "needsAuth" };
+  const first = await readAuthContext();
+  if (!first.ok) {
+    return toNeedsAuth(first);
   }
+  let auth = first.context;
 
   try {
     return await fetchWithAuth(auth);
   } catch (err) {
     // Token rotation: on 401/403 re-read keys once and retry exactly once.
     if (isAuthError(err)) {
+      log(`API auth error, re-reading local session: ${sanitizeError(err)}`);
       const reread = await readAuthContext();
-      if (!reread) {
-        return { state: "needsAuth" };
+      if (!reread.ok) {
+        return toNeedsAuth(reread);
       }
-      auth = reread;
+      auth = reread.context;
       try {
         return await fetchWithAuth(auth);
       } catch (err2) {
         if (isAuthError(err2)) {
-          return { state: "needsAuth" };
+          log(`API still rejected the session after re-read: ${sanitizeError(err2)}`);
+          return toNeedsAuth(sessionExpiredFailure());
         }
         return { state: "error", error: describeError(err2) };
       }

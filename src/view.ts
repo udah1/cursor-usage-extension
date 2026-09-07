@@ -256,8 +256,8 @@ export class UsageViewProvider implements vscode.WebviewViewProvider {
         app.innerHTML = card(
           '<div class="center">' +
           '<div class="ic warn">&#9888;</div>' +
-          '<h3>Not connected</h3>' +
-          "<p>Couldn't read a valid Cursor session token. Make sure you're signed in to Cursor on this machine.</p>" +
+          '<h3>' + esc(d.title || "Not connected") + '</h3>' +
+          "<p>" + esc(d.message || "Couldn't read a valid Cursor session token. Make sure you're signed in to Cursor on this machine.") + "</p>" +
           '<button class="primary" id="reconnect">Reconnect</button>' +
           '</div>'
         );

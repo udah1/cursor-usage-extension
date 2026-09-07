@@ -40,8 +40,9 @@ WorkosCursorSessionToken=<userSub>::<accessToken>
 ```
 
 This extension reads that token **read-only** from Cursor's global SQLite store (the same DB
-Cursor uses) via the `sqlite3` CLI (`-readonly -json`, only the four `cursorAuth/*` keys — never
-the whole file, never read-write, never VACUUM):
+Cursor uses), only the four `cursorAuth/*` keys — never the whole file, never read-write, never
+VACUUM. It prefers Node's built-in `node:sqlite` (available in Cursor / Node ≥ 22.5) and falls
+back to the `sqlite3` CLI (`-readonly -json`) if needed:
 
 | OS      | Path |
 | ------- | ---- |
@@ -53,8 +54,12 @@ The cookie/JWT is held **in memory only** — never logged, never persisted. Cur
 token; on HTTP 401/403 the extension re-reads the keys once and retries once, then shows a
 **Reconnect** hint.
 
-> Requires the `sqlite3` CLI on your PATH (preinstalled on macOS; `apt install sqlite3` /
-> available on Windows).
+If both readers fail, the panel says so explicitly (missing `state.vscdb`, missing `sqlite3` CLI,
+invalid token, or 401/403) instead of a generic "Not connected". Details go to the **Cursor Usage**
+output channel without the JWT.
+
+> The `sqlite3` CLI is only needed as a fallback on runtimes without `node:sqlite`
+> (preinstalled on macOS; `apt install sqlite3` / `winget install SQLite.SQLite` on Windows).
 
 ## Settings
 
