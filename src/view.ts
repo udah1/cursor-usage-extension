@@ -471,7 +471,8 @@ export class UsageViewProvider implements vscode.WebviewViewProvider {
         return clickableCard(
           '<div class="row"><span class="label">Cursor Models</span><span class="chip ' + sev(auto) + '">' +
           fmtPct(auto) + '</span></div>' +
-          '<div class="track"><div class="fill ' + sev(auto) + '" style="width:' + Math.min(100, auto) + '%"></div></div>'
+          '<div class="track"><div class="fill ' + sev(auto) + '" style="width:' + Math.min(100, auto) + '%"></div></div>' +
+          resetLine(d)
         ) + clickableCard(
           '<div class="row"><span class="label">Other Models</span><span class="chip ' + sev(api) + '">' +
           fmtPct(api) + '</span></div>' +
@@ -486,8 +487,8 @@ export class UsageViewProvider implements vscode.WebviewViewProvider {
         '<div class="row"><span class="big ' + (s === "ok" ? "" : s) + '">' + d.used +
         '<span class="unit">/' + d.limit + '</span></span><span class="chip ' + s + '">' + d.pct + '%</span></div>' +
         '<div class="track"><div class="fill ' + s + '" style="width:' + Math.min(100, d.pct) + '%"></div></div>' +
-        '<div class="sub"><span><b>' + d.remaining + '</b> left</span><span>' +
-        (d.daysLeft != null ? d.daysLeft.toFixed(1) + 'd left' : '') + '</span></div>'
+        resetLine(d) +
+        '<div class="sub"><span><b>' + d.remaining + '</b> left</span></div>'
       ) + clickableCard(
         d.onDemandEnabled
           ? '<div class="row"><span class="v" style="font-family:var(--mono)">' + money(d.onDemandUsed) +
