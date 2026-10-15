@@ -205,6 +205,8 @@ export interface PlanInfo {
 
 export interface PlanInfoResponse {
   planInfo?: PlanInfo;
+  /** True on unified/Premium plans merged onto the Grok billing line. */
+  isMerged?: boolean;
 }
 
 export interface SandUsageStatus {
@@ -214,6 +216,30 @@ export interface SandUsageStatus {
   hasAvailableUsage?: boolean;
   hasNonZeroIncludedLimit?: boolean;
   grokPlanLabel?: string;
+  cursorPlanName?: string;
+  isUnified?: boolean;
+  /** e.g. `SAND_BILLING_BRAND_GROK` when the dashboard lives on grok.com */
+  billingBrand?: string;
+}
+
+/** Weekly included-usage meters for unified/Premium (Cursor Models / Other Models). */
+export interface CurrentPeriodPlanUsage {
+  autoPercentUsed?: number;
+  apiPercentUsed?: number;
+  totalPercentUsed?: number;
+  remainingBonus?: boolean;
+  bonusTooltip?: string;
+}
+
+export interface CurrentPeriodUsage {
+  /** ISO string or ms epoch (number / numeric string). */
+  billingCycleStart?: string | number;
+  billingCycleEnd?: string | number;
+  planUsage?: CurrentPeriodPlanUsage;
+  enabled?: boolean;
+  displayMessage?: string;
+  autoModelSelectedDisplayMessage?: string;
+  namedModelSelectedDisplayMessage?: string;
 }
 
 export interface AggregationRow {
@@ -262,4 +288,7 @@ export const endpoints = {
 
   sandUsage: (cookie: string) =>
     postJson<SandUsageStatus>("/api/dashboard/get-sand-usage-status", cookie, {}),
+
+  currentPeriodUsage: (cookie: string) =>
+    postJson<CurrentPeriodUsage>("/api/dashboard/get-current-period-usage", cookie, {}),
 };

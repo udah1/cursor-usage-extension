@@ -10,7 +10,18 @@ import {
   PlanUsage,
   PlanInfoResponse,
   SandUsageStatus,
+  CurrentPeriodUsage,
 } from "./api";
+
+/** Where "Open Dashboard" should land for this account. */
+export type DashboardHost = "cursor" | "grok";
+
+const UNIFIED_MEMBERSHIPS = new Set(["premium", "plus", "super", "unified_ultra"]);
+
+const CURSOR_USAGE_URL = "https://cursor.com/dashboard/usage";
+const CURSOR_SPENDING_URL = "https://cursor.com/dashboard/spending";
+const GROK_USAGE_URL = "https://grok.com/dashboard/usage";
+const GROK_BILLING_URL = "https://grok.com/dashboard/billing";
 
 /* -------------------------------------------------------------------------- */
 /* Result types                                                                */
@@ -83,6 +94,13 @@ export interface UsageOk {
   // Per-model table (best-effort; team and individual)
   models?: ModelRow[];
 
+  /**
+   * Unified/Premium (Grok billing line): Cursor Models meters are weekly and the
+   * browser dashboard lives on grok.com.
+   */
+  isUnified?: boolean;
+  dashboardHost: DashboardHost;
+
   /** True when this is cached data kept on screen after a refresh failed. */
   stale?: boolean;
   /** Why the last refresh failed, when `stale` is set. */
@@ -133,15 +151,76 @@ function hasSpendingMeters(plan: PlanUsage): boolean {
 export function detectMeterMode(
   isTeam: boolean,
   usage: UsageResponse,
-  plan: PlanUsage
+  plan: PlanUsage,
+  membershipType?: string
 ): MeterMode {
   if (isTeam || hasRequestCap(usage)) {
     return "requests";
   }
-  if (hasSpendingMeters(plan)) {
+  if (hasSpendingMeters(plan) || isUnifiedMembership(membershipType)) {
     return "spending";
   }
   return "requests";
+}
+
+export function isUnifiedMembership(membershipType: string | undefined): boolean {
+  if (!membershipType) {
+    return false;
+  }
+  return UNIFIED_MEMBERSHIPS.has(membershipType.toLowerCase());
+}
+
+/** Unified/Premium plans: weekly included usage + grok.com dashboard. */
+export function detectUnifiedPlan(
+  membershipType: string | undefined,
+  planInfo?: PlanInfoResponse,
+  sand?: SandUsageStatus
+): boolean {
+  if (sand?.billingBrand === "SAND_BILLING_BRAND_GROK") {
+    return true;
+  }
+  if (sand?.isUnified === true) {
+    return true;
+  }
+  if (planInfo?.isMerged === true) {
+    return true;
+  }
+  return isUnifiedMembership(membershipType);
+}
+
+export function dashboardUrlFor(result: Pick<UsageOk, "dashboardHost" | "meterMode">): string {
+  if (result.dashboardHost === "grok") {
+    return result.meterMode === "spending" ? GROK_BILLING_URL : GROK_USAGE_URL;
+  }
+  return result.meterMode === "spending" ? CURSOR_SPENDING_URL : CURSOR_USAGE_URL;
+}
+
+/** Normalize ISO or ms-epoch (number / numeric string) to an ISO timestamp. */
+export function toIsoTimestamp(value: string | number | undefined | null): string | undefined {
+  if (value == null || value === "") {
+    return undefined;
+  }
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) {
+      return undefined;
+    }
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
+  }
+  const trimmed = value.trim();
+  if (/^\d{10,}$/.test(trimmed)) {
+    const n = Number(trimmed);
+    if (!Number.isFinite(n)) {
+      return undefined;
+    }
+    const d = new Date(n);
+    return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
+  }
+  const parsed = Date.parse(trimmed);
+  if (Number.isNaN(parsed)) {
+    return undefined;
+  }
+  return new Date(parsed).toISOString();
 }
 
 const DAY_MS = 86_400_000;
@@ -258,7 +337,7 @@ async function fetchWithAuth(auth: AuthContext): Promise<UsageResult> {
 
   const isTeam = summary.limitType === "team";
   const plan = summary.individualUsage?.plan ?? {};
-  const meterMode = detectMeterMode(isTeam, usage, plan);
+  const meterMode = detectMeterMode(isTeam, usage, plan, summary.membershipType);
 
   // Best-effort extras — never let one failure blank the panel.
   let teams: TeamsResponse | undefined;
@@ -266,6 +345,7 @@ async function fetchWithAuth(auth: AuthContext): Promise<UsageResult> {
   let models: ModelRow[] | undefined;
   let planInfo: PlanInfoResponse | undefined;
   let sand: SandUsageStatus | undefined;
+  let currentPeriod: CurrentPeriodUsage | undefined;
 
   if (isTeam && auth.teamId != null) {
     const teamId = auth.teamId;
@@ -284,10 +364,11 @@ async function fetchWithAuth(auth: AuthContext): Promise<UsageResult> {
       models = mapModels(aggR.value?.aggregations);
     }
   } else if (meterMode === "spending") {
-    const [planR, sandR, aggR] = await Promise.allSettled([
+    const [planR, sandR, aggR, periodR] = await Promise.allSettled([
       endpoints.planInfo(cookie),
       endpoints.sandUsage(cookie),
       endpoints.aggregatedUsage(cookie),
+      endpoints.currentPeriodUsage(cookie),
     ]);
     if (planR.status === "fulfilled") {
       planInfo = planR.value;
@@ -297,6 +378,9 @@ async function fetchWithAuth(auth: AuthContext): Promise<UsageResult> {
     }
     if (aggR.status === "fulfilled") {
       models = mapModels(aggR.value?.aggregations);
+    }
+    if (periodR.status === "fulfilled") {
+      currentPeriod = periodR.value;
     }
   }
 
@@ -311,6 +395,7 @@ async function fetchWithAuth(auth: AuthContext): Promise<UsageResult> {
     models,
     planInfo,
     sand,
+    currentPeriod,
   });
 }
 
@@ -358,15 +443,47 @@ interface BuildInput {
   models?: ModelRow[];
   planInfo?: PlanInfoResponse;
   sand?: SandUsageStatus;
+  currentPeriod?: CurrentPeriodUsage;
 }
 
 function buildResult(input: BuildInput): UsageOk {
-  const { auth, usage, summary, isTeam, meterMode, teams, perUserHardLimit, models, planInfo, sand } =
-    input;
+  const {
+    auth,
+    usage,
+    summary,
+    isTeam,
+    meterMode,
+    teams,
+    perUserHardLimit,
+    models,
+    planInfo,
+    sand,
+    currentPeriod,
+  } = input;
 
   const legacy = usage["gpt-4"] ?? {};
   const plan = summary.individualUsage?.plan ?? {};
   const onDemand = summary.individualUsage?.onDemand ?? {};
+  const isUnified = detectUnifiedPlan(summary.membershipType, planInfo, sand);
+  const dashboardHost: DashboardHost = isUnified ? "grok" : "cursor";
+
+  // Unified/Premium: Cursor Models live on the weekly current-period endpoint.
+  // usage-summary still returns monthly 0% bars that no longer match the dashboard.
+  const useWeeklyMeters =
+    isUnified &&
+    currentPeriod?.planUsage != null &&
+    (currentPeriod.planUsage.autoPercentUsed != null ||
+      currentPeriod.planUsage.apiPercentUsed != null);
+
+  const autoPercentUsed = useWeeklyMeters
+    ? currentPeriod!.planUsage!.autoPercentUsed
+    : plan.autoPercentUsed;
+  const apiPercentUsed = useWeeklyMeters
+    ? currentPeriod!.planUsage!.apiPercentUsed
+    : plan.apiPercentUsed;
+  const totalPercentUsed = useWeeklyMeters
+    ? currentPeriod!.planUsage!.totalPercentUsed
+    : plan.totalPercentUsed;
 
   const planUsedCents = plan.used ?? 0;
   const requestQuotaPerSeat =
@@ -397,8 +514,15 @@ function buildResult(input: BuildInput): UsageOk {
   const includedExhausted = includedLimitCents > 0 && planUsedCents >= includedLimitCents;
 
   const now = Date.now();
-  const start = summary.billingCycleStart ? Date.parse(summary.billingCycleStart) : NaN;
-  const end = summary.billingCycleEnd ? Date.parse(summary.billingCycleEnd) : NaN;
+  const billingCycleStart = useWeeklyMeters
+    ? toIsoTimestamp(currentPeriod!.billingCycleStart) ?? summary.billingCycleStart
+    : summary.billingCycleStart;
+  const billingCycleEnd = useWeeklyMeters
+    ? toIsoTimestamp(currentPeriod!.billingCycleEnd) ?? summary.billingCycleEnd
+    : summary.billingCycleEnd;
+
+  const start = billingCycleStart ? Date.parse(billingCycleStart) : NaN;
+  const end = billingCycleEnd ? Date.parse(billingCycleEnd) : NaN;
 
   let daysLeft: number | undefined;
   let requestsPerDay: number | undefined;
@@ -416,6 +540,8 @@ function buildResult(input: BuildInput): UsageOk {
     projectedToExceed = safeLimit > 0 && projectedRequests > safeLimit;
   }
 
+  const planName = sand?.cursorPlanName ?? planInfo?.planInfo?.planName;
+
   return {
     state: "ok",
     fetchedAt: now,
@@ -423,16 +549,16 @@ function buildResult(input: BuildInput): UsageOk {
     meterMode,
     membershipType: summary.membershipType ?? "unknown",
     email: auth.email,
-    planName: planInfo?.planInfo?.planName,
+    planName,
     planPrice: planInfo?.planInfo?.price,
 
     used,
     limit: safeLimit,
     remaining,
     pct,
-    totalPercentUsed: plan.totalPercentUsed,
-    autoPercentUsed: plan.autoPercentUsed,
-    apiPercentUsed: plan.apiPercentUsed,
+    totalPercentUsed,
+    autoPercentUsed,
+    apiPercentUsed,
     includedExhausted,
     includedUsedDollars: centsToDollars(planUsedCents),
     includedLimitDollars: centsToDollars(includedLimitCents),
@@ -445,14 +571,16 @@ function buildResult(input: BuildInput): UsageOk {
     perUserHardLimit,
     grokBot: mapGrokBot(sand, now),
 
-    billingCycleStart: summary.billingCycleStart,
-    billingCycleEnd: summary.billingCycleEnd,
+    billingCycleStart,
+    billingCycleEnd,
     daysLeft,
     requestsPerDay,
     projectedRequests,
     projectedToExceed,
 
     models,
+    isUnified,
+    dashboardHost,
   };
 }
 

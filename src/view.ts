@@ -333,7 +333,8 @@ export class UsageViewProvider implements vscode.WebviewViewProvider {
 
     function resetLine(d) {
       if (!d.billingCycleEnd) return "";
-      return '<div class="reset">Resets ' + esc(fmtDate(d.billingCycleEnd)) +
+      const prefix = d.isUnified ? "Weekly · resets " : "Resets ";
+      return '<div class="reset">' + prefix + esc(fmtDate(d.billingCycleEnd)) +
         (d.daysLeft != null ? ' · ' + d.daysLeft.toFixed(1) + 'd left' : '') + '</div>';
     }
 
@@ -423,10 +424,17 @@ export class UsageViewProvider implements vscode.WebviewViewProvider {
     }
 
     function foot(d) {
-      const dashLabel = d.meterMode === "spending" ? "Spending" : "Usage";
-      const dashTitle = d.meterMode === "spending"
-        ? "Open cursor.com/dashboard/spending"
-        : "Open cursor.com/dashboard/usage";
+      const onGrok = d.dashboardHost === "grok";
+      const dashLabel = onGrok
+        ? (d.meterMode === "spending" ? "Billing" : "Usage")
+        : (d.meterMode === "spending" ? "Spending" : "Usage");
+      const dashTitle = onGrok
+        ? (d.meterMode === "spending"
+          ? "Open grok.com/dashboard/billing"
+          : "Open grok.com/dashboard/usage")
+        : (d.meterMode === "spending"
+          ? "Open cursor.com/dashboard/spending"
+          : "Open cursor.com/dashboard/usage");
       const stamp = d.stale
         ? '<span class="stamp stale" title="' + esc(d.staleError || "") +
           '">&#9888; couldn\\'t refresh · showing ' + ago(d.fetchedAt) + '</span>'

@@ -1,13 +1,12 @@
 import * as vscode from "vscode";
 import * as fs from "node:fs";
-import { fetchUsage, getCached, UsageResult } from "./usage";
+import { dashboardUrlFor, fetchUsage, getCached, UsageResult } from "./usage";
 import { StatusBar } from "./statusbar";
 import { UsageViewProvider } from "./view";
 import { downloadVsix, fetchLatestRelease, isNewer, UpdateInfo } from "./update";
 import { setExtensionLogger } from "./log";
 
-const DASHBOARD_USAGE_URL = "https://cursor.com/dashboard/usage";
-const DASHBOARD_SPENDING_URL = "https://cursor.com/dashboard/spending";
+const FALLBACK_DASHBOARD_URL = "https://cursor.com/dashboard/usage";
 const UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const LAST_CHECK_KEY = "cursorUsage.lastUpdateCheck";
 const SKIPPED_VERSION_KEY = "cursorUsage.skippedVersion";
@@ -47,8 +46,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("cursorUsage.refresh", () => void refresh(true)),
     vscode.commands.registerCommand("cursorUsage.openDashboard", () => {
       const cached = getCached();
-      const url =
-        cached?.meterMode === "spending" ? DASHBOARD_SPENDING_URL : DASHBOARD_USAGE_URL;
+      const url = cached ? dashboardUrlFor(cached) : FALLBACK_DASHBOARD_URL;
       void vscode.env.openExternal(vscode.Uri.parse(url));
     }),
     vscode.commands.registerCommand("cursorUsage.checkForUpdates", () =>
