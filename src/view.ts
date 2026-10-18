@@ -152,7 +152,7 @@ export class UsageViewProvider implements vscode.WebviewViewProvider {
   .kv { display: flex; justify-content: space-between; font-size: 11px; padding: 3px 0; }
   .kv .v { font-family: var(--mono); }
   .kv .k { color: var(--muted); }
-  .reset { display: flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .reset { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 2px; }
   .burn { font-family: var(--mono); font-size: 10px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border); color: var(--muted); }
   .burn.warn { color: var(--warn); }
   table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 10px; }
@@ -228,10 +228,18 @@ export class UsageViewProvider implements vscode.WebviewViewProvider {
       const r = Math.round(n * 100) / 100;
       return "$" + (Number.isInteger(r) ? r : r.toFixed(2));
     }
-    function fmtDate(iso) {
+    function fmtDate(iso, withTime) {
       if (!iso) return "—";
       try {
-        return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+        const opts = { month: "short", day: "numeric", year: "numeric" };
+        if (withTime) {
+          opts.hour = "numeric";
+          opts.minute = "2-digit";
+        }
+        const when = new Date(iso);
+        return withTime
+          ? when.toLocaleString(undefined, opts)
+          : when.toLocaleDateString(undefined, opts);
       } catch { return iso; }
     }
     function fmtTokens(n) {
@@ -331,10 +339,10 @@ export class UsageViewProvider implements vscode.WebviewViewProvider {
       return state.version ? '<div class="version">v' + esc(state.version) + '</div>' : "";
     }
 
-    function resetLine(d) {
+    function resetLine(d, withTime) {
       if (!d.billingCycleEnd) return "";
       const prefix = d.isUnified ? "Weekly · resets " : "Resets ";
-      return '<div class="reset">' + prefix + esc(fmtDate(d.billingCycleEnd)) +
+      return '<div class="reset">' + prefix + esc(fmtDate(d.billingCycleEnd, withTime)) +
         (d.daysLeft != null ? ' · ' + d.daysLeft.toFixed(1) + 'd left' : '') + '</div>';
     }
 
@@ -361,7 +369,7 @@ export class UsageViewProvider implements vscode.WebviewViewProvider {
         d.used + '<span class="unit"> / ' + d.limit + '</span></span>' +
         '<span class="meta"><b>' + d.remaining + '</b> left</span></div>' +
         '<div class="track"><div class="fill ' + s + '" style="width:' + Math.min(100, d.pct) + '%"></div></div>' +
-        resetLine(d) +
+        resetLine(d, true) +
         burn(d)
       );
     }
@@ -397,10 +405,10 @@ export class UsageViewProvider implements vscode.WebviewViewProvider {
       );
     }
 
-    function grokCard(d) {
+    function grokCard(d, withTime) {
       if (!d.grokBot) return "";
       const extra = d.grokBot.resetsAt
-        ? '<div class="reset">Weekly · resets ' + esc(fmtDate(d.grokBot.resetsAt)) +
+        ? '<div class="reset">Weekly · resets ' + esc(fmtDate(d.grokBot.resetsAt, withTime)) +
           (d.grokBot.daysLeft != null ? ' · ' + d.grokBot.daysLeft.toFixed(1) + 'd left' : '') + '</div>'
         : "";
       return percentCard("Grok Bot", d.grokBot.percent, extra);
@@ -459,9 +467,9 @@ export class UsageViewProvider implements vscode.WebviewViewProvider {
 
     function renderFull(d) {
       if (d.meterMode === "spending") {
-        return percentCard("Cursor Models", d.autoPercentUsed, resetLine(d) + spendingHint(d)) +
+        return percentCard("Cursor Models", d.autoPercentUsed, resetLine(d, true) + spendingHint(d)) +
           percentCard("Other Models", d.apiPercentUsed) +
-          grokCard(d) +
+          grokCard(d, true) +
           spendCard(d) +
           modelsCard(d);
       }
